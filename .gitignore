@@ -1,0 +1,34 @@
+# ─── 제3자 원본 데이터셋 ───────────────────────────────
+# 용량이 크고 재현 스크립트로 다시 받는다 (DATA_SOURCES.md 참조)
+adventureworks/
+contoso/
+data/
+
+# ─── 로컬 전용 문서 ───────────────────────────────────
+# 저장소에 올리지 않고 작업 환경에만 두는 파일
+# ME.md, CONTEXT.md: 사용자 개인 공간
+# CLAUDE.md, CODEX.md: AI 행동 지침 (개인 맥락 포함)
+# collab.md: 구 협업 보드 — GitHub Issue·PR로 전환, 보관용
+# Skillthon.md: 대회 주최측 공지 원문 — 재배포하지 않는다
+ME.md
+CONTEXT.md
+CLAUDE.md
+CODEX.md
+collab.md
+Skillthon.md
+PwC_AX_Advisory.md
+PwC_data/
+
+# ─── 미정리 산출물 ────────────────────────────────────
+# 공개 전 재작성이 필요한 도식
+# (아키텍처 다이어그램은 README에 mermaid로 재작성 예정)
+assets/
+
+# ─── 실행 환경 ────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.ipynb_checkpoints/
+.DS_Store
