@@ -25,6 +25,38 @@ function Get-AgentToken {
     return $t
 }
 
+# ── 검토자 계정 검증 ─────────────────────────────────────────────
+# GitHub는 자기 PR에 대한 승인·변경요청을 거부한다. 실행 직전에 실제 계정을
+# 확인해, 기대와 다르면 리뷰가 등록되지 않는 상태로 진행하지 않는다.
+function Confirm-ReviewerAccount {
+    param(
+        [Parameter(Mandatory = $true)][string]$Expected,
+        [Parameter(Mandatory = $true)][string]$PrAuthor,
+        [string]$Token
+    )
+
+    $prev = $env:GH_TOKEN
+    if ($Token) { $env:GH_TOKEN = $Token }
+    try {
+        $actual = gh api user | ConvertFrom-Json | Select-Object -ExpandProperty login
+    }
+    finally {
+        if ($Token) {
+            if ($prev) { $env:GH_TOKEN = $prev } else { Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue }
+        }
+    }
+
+    if ($actual -ne $Expected) {
+        throw "검토자 계정이 기대와 다릅니다. 기대=$Expected, 실제=$actual. 토큰 설정을 확인하세요."
+    }
+    if ($actual -eq $PrAuthor) {
+        throw "자기 PR은 검토할 수 없습니다. PR 작성자=$PrAuthor, 검토자=$actual."
+    }
+
+    Write-Host "검토자 계정 확인: $actual (PR 작성자: $PrAuthor)" -ForegroundColor Cyan
+    return $actual
+}
+
 # ── 진행 상황 브리핑 ─────────────────────────────────────────────
 # 어느 AI가 언제 들어와도 같은 맥락을 얻게 하는 장치.
 function Get-RepoBriefing {
@@ -63,9 +95,9 @@ function Get-RepoBriefing {
     $lines.Add('')
 
     $lines.Add('## 문서 지도 — 판단 전에 관련 문서를 직접 읽는다')
-    $lines.Add('- `Scaffolding.md` — 진행 단계와 잠가야 할 결정 D1~D13. **결정 관련 판단은 여기가 기준이다**')
+    $lines.Add('- `Scaffolding.md` — 진행 단계와 잠가야 할 결정 D1~D15. **결정 관련 판단은 여기가 기준이다**')
     $lines.Add('- `PROJECT_BRIEF.md` — 확정 사항, 기각한 대안, 데이터 검증 결과')
-    $lines.Add('- `Skillthon.md` — 대회 요건. 배점·심사 방식·제출물 (로컬 전용)')
+    $lines.Add('- `_local/Skillthon.md` — 대회 요건. 배점·심사 방식·제출물 (로컬 전용)')
     $lines.Add('- `COLLABORATION.md` — 협업 절차와 검토 기준')
     $lines.Add('- `DECISIONS.md` — 이미 내려진 결정. 번복하려면 근거가 필요하다')
     $lines.Add('')

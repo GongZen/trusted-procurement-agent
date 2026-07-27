@@ -47,14 +47,31 @@ if (-not $Agent) {
     $Agent = if ($prAuthor -eq 'Sub-GongZen') { 'claude' } else { 'codex' }
     Write-Host "검토자를 자동 선택했습니다: $Agent (PR 작성자: $prAuthor)"
 }
-if ($Agent -eq 'codex' -and $prAuthor -eq 'Sub-GongZen') {
-    Write-Error "Codex가 만든 PR을 Codex가 검토할 수 없습니다. -Agent claude 로 지정하세요."
+# 각 에이전트가 사용할 계정을 명시적으로 고정한다.
+#   Codex  → Sub-GongZen (토큰 파일 주입)
+#   Claude → GongZen     (기본 로그인. 주변 GH_TOKEN이 남아 있으면 제거해야 한다)
+$expectedAccount = if ($Agent -eq 'codex') { 'Sub-GongZen' } else { 'GongZen' }
+
+if ($expectedAccount -eq $prAuthor) {
+    Write-Error "자기 PR은 검토할 수 없습니다. PR 작성자=$prAuthor, 검토자 계정=$expectedAccount. 반대쪽 에이전트를 지정하세요."
     exit 1
 }
 
-# 검토자가 Codex일 때만 별도 계정 토큰을 주입한다.
-# Claude는 기본 로그인(GongZen)을 그대로 쓴다.
-$token = if ($Agent -eq 'codex') { Get-AgentToken } else { $null }
+if ($Agent -eq 'codex') {
+    $token = Get-AgentToken
+}
+else {
+    # Claude는 keyring 로그인을 써야 한다. 이전 실행이 남긴 GH_TOKEN이 있으면
+    # 엉뚱한 계정으로 리뷰가 등록되므로 반드시 지운다.
+    $token = $null
+    if ($env:GH_TOKEN) {
+        Write-Host "주변 GH_TOKEN을 제거합니다 (Claude는 기본 로그인을 사용)" -ForegroundColor DarkGray
+        Remove-Item Env:GH_TOKEN
+    }
+}
+
+# 실제로 어느 계정이 붙는지 확인한다. 기대와 다르면 리뷰 등록이 거부되므로 미리 멈춘다.
+$actual = Confirm-ReviewerAccount -Expected $expectedAccount -PrAuthor $prAuthor -Token $token
 
 # ── 3. 판정 기준 Issue ────────────────────────────────────────────
 if ($Issue -eq 0) {
