@@ -36,3 +36,6 @@ venv/
 secrets*
 credentials*
 dist/
+.claude/
+.agents/
+skills-lock.json
