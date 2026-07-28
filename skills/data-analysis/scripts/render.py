@@ -56,14 +56,22 @@ def 체인(단계들: list[dict]) -> str:
     지도 = {d["단계"]: d for d in 단계들}
     칸 = []
     for i, 이름 in enumerate(단계순서):
-        d = 지도.get(이름, {"관측": "자료없음", "올해": None, "배수": None})
+        d = 지도.get(이름, {"관측": "자료없음"})
         관측 = d.get("관측", "자료없음")
-        배수 = f"평년의 {d['배수']}배" if d.get("배수") else "자료 없음"
+        # 🔴 「평년의 1.9배」가 아니라 「2,400 → 5,040원 (+110%)」로 쓴다.
+        #    의사결정자는 비율보다 금액에 먼저 반응한다.
+        if d.get("올해") and d.get("평년평균"):
+            율 = round((d["올해"] / d["평년평균"] - 1) * 100)
+            값 = (f'<div class="px">{d["평년평균"]:,} → '
+                 f'<b>{d["올해"]:,}원</b></div>'
+                 f'<div class="pct">{"+" if 율 >= 0 else ""}{율}%</div>')
+        elif d.get("올해"):
+            값 = f'<div class="px">{d["올해"]:,}원</div><div class="pct">비교 불가</div>'
+        else:
+            값 = '<div class="px">—</div>'
         칸.append(
             f'<div class="stage {esc(관측)}">'
-            f'<div class="nm">{esc(이름)}</div>'
-            f'<div class="st">{esc(관측)}</div>'
-            f'<div class="px">{esc(배수)}</div></div>'
+            f'<div class="nm">{esc(이름)}</div>{값}</div>'
         )
         if i < len(단계순서) - 1:
             칸.append('<div class="arrow">→</div>')
@@ -72,15 +80,16 @@ def 체인(단계들: list[dict]) -> str:
 
 def 카드(p: dict, 순번: int) -> str:
     항목 = [
-        f'<div class="card{" top" if 순번 == 1 else ""}">',
-        '<div class="rank">',
-        f'<span class="no">{순번}위</span><b>{esc(p["품목"])}</b>',
+        '<div class="card">',
+        '<div class="head">',
+        f'<span class="no">{순번}위</span>'
+        f'<span class="name">{esc(p["품목"])}</span>',
     ]
     if p.get("확인필요"):
         항목.append('<span class="flag">확인 필요</span>')
     항목.append("</div>")
 
-    항목.append(f'<div class="verdict">{굵게(p["사람말"])}</div>')
+    항목.append(f'<p class="verdict">{굵게(p["사람말"])}</p>')
 
     if p.get("단계추적"):
         항목.append(체인(p["단계추적"]))
@@ -150,7 +159,17 @@ def 텍스트로(보고서: dict) -> str:
         줄.append(f"    {p['사람말'].replace('**', '')}")
         if p.get("단계추적"):
             지도 = {d["단계"]: d for d in p["단계추적"]}
-            칸 = [f"{n} {지도.get(n, {}).get('관측', '자료없음')}" for n in 단계순서]
+            칸 = []
+            for n in 단계순서:
+                d = 지도.get(n, {})
+                if d.get("올해") and d.get("평년평균"):
+                    율 = round((d["올해"] / d["평년평균"] - 1) * 100)
+                    칸.append(f"{n} {d['평년평균']:,}→{d['올해']:,}원"
+                              f"({'+' if 율 >= 0 else ''}{율}%)")
+                elif d.get("올해"):
+                    칸.append(f"{n} {d['올해']:,}원(비교불가)")
+                else:
+                    칸.append(f"{n} 자료없음")
             줄.append("    " + "  →  ".join(칸))
         if p.get("해석"):
             줄.append(f"    {p['해석'].replace('**', '')}")

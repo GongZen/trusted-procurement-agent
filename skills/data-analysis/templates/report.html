@@ -1,87 +1,149 @@
 <!-- 예외 보고 한 장 — 렌더러가 채우는 자리는 {{...}} 로 표시한다.
      🔴 이 파일에는 계산이 없다. 숫자는 전부 analyze.py 가 만든 JSON 에서 온다.
-     외부 자원을 참조하지 않는다 — 타임리 아티팩트는 인라인 HTML 만 렌더링한다. -->
+     외부 자원을 참조하지 않는다 — 타임리 아티팩트는 인라인 HTML 만 렌더링한다.
+
+     디자인 방침
+       · 매일 아침 3초 안에 읽고 일하러 가는 업무 문서다. 인상보다 예측 가능성.
+       · 색은 장식이 아니라 정보다. 높음/낮음/평년만 색을 갖고 나머지는 무채색.
+       · 한글 웹폰트는 링크할 수 없고(CSP) 인라인하기엔 너무 크다.
+         그래서 위계를 굵기·크기·자간으로만 만든다. -->
 <style>
   :root {
-    --bg: #fbfaf8; --card: #fff; --ink: #1c1917; --muted: #78716c;
-    --line: #e7e5e4; --high: #b91c1c; --high-bg: #fef2f2;
-    --mid: #b45309; --low: #0369a1; --ok: #15803d;
+    color-scheme: light dark;
+    /* 지면은 아주 살짝 푸른 회색 — 순백은 시세표의 숫자를 뜨게 만든다 */
+    --paper:  #f4f6f7;
+    --card:   #ffffff;
+    --ink:    #14181c;
+    --muted:  #5d6b77;
+    --line:   #dde3e8;
+    --rule:   #14181c;
+    /* 의미색 셋. 강조색이 아니라 판정 그 자체다 */
+    --up:     #a3302a;
+    --up-bg:  #fbf0ef;
+    --down:   #1f5c88;
+    --flat:   #46664e;
+    --watch:  #8a5a12;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1c1917; --card: #292524; --ink: #f5f5f4; --muted: #a8a29e;
-      --line: #44403c; --high: #f87171; --high-bg: #451a1a;
-      --mid: #fbbf24; --low: #7dd3fc; --ok: #4ade80;
+      --paper: #14181c; --card: #1c2126; --ink: #eef2f5; --muted: #97a4b0;
+      --line: #2c343b; --rule: #eef2f5;
+      --up: #e8837a; --up-bg: #2c1c1b; --down: #7fb6dd; --flat: #8fbd99;
+      --watch: #d6a355;
     }
   }
+  /* 뷰어의 테마 토글이 media query 를 양방향으로 이겨야 한다 */
+  :root[data-theme="dark"] {
+    --paper: #14181c; --card: #1c2126; --ink: #eef2f5; --muted: #97a4b0;
+    --line: #2c343b; --rule: #eef2f5;
+    --up: #e8837a; --up-bg: #2c1c1b; --down: #7fb6dd; --flat: #8fbd99;
+    --watch: #d6a355;
+  }
+  :root[data-theme="light"] {
+    --paper: #f4f6f7; --card: #ffffff; --ink: #14181c; --muted: #5d6b77;
+    --line: #dde3e8; --rule: #14181c;
+    --up: #a3302a; --up-bg: #fbf0ef; --down: #1f5c88; --flat: #46664e;
+    --watch: #8a5a12;
+  }
+
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 24px 16px; background: var(--bg); color: var(--ink);
-    font-family: "Pretendard", -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
-    line-height: 1.65; font-size: 15px;
+    margin: 0; padding: 32px 20px 56px;
+    background: var(--paper); color: var(--ink);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic",
+                 -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px; line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 760px; margin: 0 auto; }
+  .wrap { max-width: 720px; margin: 0 auto; display: flex;
+          flex-direction: column; gap: 20px; }
+  b, strong { font-weight: 700; }
+  /* 금액은 자릿수가 맞아야 비교가 눈으로 된다 */
+  .num, .chain, .verdict, .audit { font-variant-numeric: tabular-nums; }
 
-  header { border-bottom: 2px solid var(--ink); padding-bottom: 12px; margin-bottom: 8px; }
-  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.02em; }
-  .meta { color: var(--muted); font-size: 13px; }
-  .auto { display: inline-block; background: var(--ink); color: var(--bg);
-          padding: 1px 8px; border-radius: 3px; font-size: 11px; margin-left: 6px; }
+  /* ── 머리 ── */
+  header { display: flex; flex-direction: column; gap: 6px;
+           border-bottom: 2px solid var(--rule); padding-bottom: 14px; }
+  .eyebrow { font-size: 11px; letter-spacing: .16em; color: var(--muted);
+             text-transform: uppercase; }
+  h1 { font-size: 25px; line-height: 1.25; margin: 0; letter-spacing: -.02em;
+       text-wrap: balance; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+          font-size: 12.5px; color: var(--muted); }
+  .auto { border: 1px solid var(--line); border-radius: 2px;
+          padding: 1px 7px; font-size: 11px; letter-spacing: .04em; }
 
-  .lede { font-size: 17px; margin: 14px 0 0; }
-  .lede strong { color: var(--high); }
+  .lede { font-size: 17px; line-height: 1.6; margin: 0; text-wrap: balance; }
+  .lede strong { color: var(--up); }
 
+  /* ── 품목 카드 ── */
   .card { background: var(--card); border: 1px solid var(--line);
-          border-radius: 10px; padding: 18px 20px; margin-top: 16px; }
-  .card.top { border-left: 4px solid var(--high); }
+          padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .no { font-size: 12px; font-weight: 700; letter-spacing: .1em;
+        color: var(--muted); }
+  .name { font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
+  .flag { margin-left: auto; font-size: 11px; letter-spacing: .06em;
+          color: var(--watch); border: 1px solid currentColor;
+          border-radius: 2px; padding: 1px 8px; }
+  .verdict { font-size: 15.5px; line-height: 1.65; margin: 0; }
+  .verdict strong { color: var(--up); }
 
-  .rank { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-  .rank b { font-size: 19px; }
-  .rank .no { color: var(--high); font-weight: 700; font-size: 13px; }
-  .verdict { font-size: 16px; margin: 2px 0 14px; }
-  .verdict strong { color: var(--high); }
+  /* ── 유통 3단계. 이 줄이 이 산출물의 핵심이다 ── */
+  .chain { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr;
+           align-items: stretch; gap: 0; }
+  .stage { border: 1px solid var(--line); padding: 11px 8px 12px;
+           text-align: center; display: flex; flex-direction: column; gap: 2px; }
+  .stage .nm { font-size: 11px; letter-spacing: .1em; color: var(--muted); }
+  .stage .px { font-size: 12px; color: var(--muted); }
+  .stage .px b { display: block; font-size: 15px; color: var(--ink); }
+  .stage .pct { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  .stage.높음  { border-color: var(--up); background: var(--up-bg); }
+  .stage.높음 .pct  { color: var(--up); }
+  .stage.낮음 .pct  { color: var(--down); }
+  .stage.평년수준 .pct { color: var(--flat); }
+  .stage.자료없음, .stage.비교불가 { opacity: .5; }
+  .arrow { display: flex; align-items: center; justify-content: center;
+           width: 26px; color: var(--muted); font-size: 12px; }
 
-  /* 유통 3단계 — 이 그림이 이 산출물의 핵심이다 */
-  .chain { display: flex; align-items: stretch; gap: 0; margin: 14px 0 6px; }
-  .stage { flex: 1; text-align: center; padding: 10px 6px; border: 1px solid var(--line);
-           border-radius: 8px; background: var(--bg); }
-  .stage .nm { font-size: 12px; color: var(--muted); }
-  .stage .st { font-size: 15px; font-weight: 700; margin-top: 2px; }
-  .stage .px { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .stage.높음 { border-color: var(--high); background: var(--high-bg); }
-  .stage.높음 .st { color: var(--high); }
-  .stage.낮음 .st { color: var(--low); }
-  .stage.평년수준 .st { color: var(--ok); }
-  .stage.자료없음 { opacity: .45; }
-  .arrow { display: flex; align-items: center; color: var(--muted);
-           padding: 0 6px; font-size: 13px; }
+  .reading { margin: 0; padding-left: 13px; border-left: 2px solid var(--line);
+             font-size: 14px; line-height: 1.6; color: var(--ink); }
+  .reading strong { color: var(--up); }
 
-  .reading { background: var(--bg); border-left: 3px solid var(--muted);
-             padding: 8px 12px; margin: 10px 0 0; font-size: 14px; }
+  .block { display: flex; flex-direction: column; gap: 3px; }
+  .block h3 { margin: 0; font-size: 11px; letter-spacing: .12em;
+              color: var(--muted); font-weight: 600; }
+  .block ul { margin: 0; padding-left: 17px; }
+  .block li { margin: 1px 0; }
 
-  .block { margin-top: 14px; }
-  .block h3 { font-size: 13px; color: var(--muted); margin: 0 0 4px;
-              font-weight: 600; letter-spacing: .02em; }
-  .block ul { margin: 0; padding-left: 18px; }
-  .block li { margin: 2px 0; }
+  .none { text-align: center; padding: 44px 20px; color: var(--muted); }
 
-  .flag { display: inline-block; background: var(--mid); color: #fff;
-          font-size: 11px; padding: 1px 7px; border-radius: 3px; }
-
-  footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
+  /* ── 꼬리 ── */
+  footer { border-top: 1px solid var(--line); padding-top: 16px;
+           display: flex; flex-direction: column; gap: 14px;
            font-size: 13px; color: var(--muted); }
-  footer h3 { font-size: 13px; color: var(--ink); margin: 0 0 6px; }
-  .none { text-align: center; padding: 40px 20px; color: var(--muted); }
-  table.audit { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
-  table.audit td { border-top: 1px solid var(--line); padding: 3px 6px; }
+  footer h3 { margin: 0 0 4px; font-size: 11px; letter-spacing: .12em;
+              color: var(--ink); font-weight: 600; }
+  footer ul { margin: 0; padding-left: 17px; }
   .scroll { overflow-x: auto; }
+  table.audit { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.audit td { border-top: 1px solid var(--line); padding: 5px 8px;
+                   vertical-align: top; }
+  table.audit td:first-child { color: var(--ink); white-space: nowrap;
+                               font-weight: 600; width: 1%; }
+
+  @media (max-width: 560px) {
+    .chain { grid-template-columns: 1fr; }
+    .arrow { width: auto; height: 18px; transform: rotate(90deg); }
+  }
 </style>
 
 <div class="wrap">
   <header>
+    <div class="eyebrow">식자재 조달 · 점검 우선순위</div>
     <h1>오늘 먼저 볼 것{{제목수}}</h1>
     <div class="meta">
-      기준일 {{기준일}} · 생성 {{생성시각}}
+      <span>기준일 {{기준일}}</span><span>·</span><span>생성 {{생성시각}}</span>
       <span class="auto">사람 개입 없이 자동 생성</span>
     </div>
   </header>
@@ -91,9 +153,13 @@
   {{카드들}}
 
   <footer>
-    <h3>이 보고서가 답하지 않는 것</h3>
-    <ul>{{한계들}}</ul>
-    <h3 style="margin-top:14px">근거</h3>
-    <div class="scroll"><table class="audit">{{근거표}}</table></div>
+    <div>
+      <h3>이 보고서가 답하지 않는 것</h3>
+      <ul>{{한계들}}</ul>
+    </div>
+    <div>
+      <h3>근거</h3>
+      <div class="scroll"><table class="audit">{{근거표}}</table></div>
+    </div>
   </footer>
 </div>
