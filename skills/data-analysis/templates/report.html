@@ -200,7 +200,7 @@
   .entry { border: 1px solid var(--color-leaf-line);
            background: var(--color-card);
            padding: var(--space-xl);
-           display: grid; gap: var(--space-md) var(--space-2xl);
+           display: grid; gap: var(--space-lg);
            grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
            grid-template-areas:
              "head head"
@@ -209,9 +209,9 @@
              "notes notes"; }
   .entry-head { grid-area: head; }
   .col-l { grid-area: left; display: flex; flex-direction: column;
-           gap: var(--space-md); align-self: start; }
+           gap: var(--space-lg); }
   .col-r { grid-area: right; display: flex; flex-direction: column;
-           gap: var(--space-md); align-self: start; }
+           gap: var(--space-lg); align-self: start; }
   .entry .chain { grid-area: chain; }
   .entry .notes { grid-area: notes; padding-top: var(--space-md);
                   border-top: 1px solid var(--color-leaf-line); }
@@ -222,11 +222,11 @@
                       color: var(--color-ink-3); }
   .entry-head .item { font-size: 1.75rem; font-weight: 600;
                       letter-spacing: -0.035em; line-height: 1.1; }
-  .entry-head .move { margin-left: auto; font-size: var(--text-xl);
-                      font-weight: 600; }
-  .entry-head .move.up { color: var(--color-up); }
-  .entry-head .move.down { color: var(--color-down); }
-  .entry-head .move.flat { color: var(--color-flat); }
+  .entry-head .move { margin-left: auto; display: flex; flex-direction: column;
+                      align-items: flex-end; line-height: 1.25; }
+  .entry-head .movek { font-size: var(--text-xs); color: var(--color-ink-3); }
+  .entry-head .move .fig { font-size: var(--text-xl); font-weight: 600;
+                           color: var(--color-ink-0); }
   .badge { font-family: var(--font-mono); font-size: var(--text-xs);
            letter-spacing: 0.06em; color: var(--color-warning);
            border: 1px solid currentColor; border-radius: var(--radius-pill);
@@ -254,18 +254,27 @@
   .step.평년수준 .dt { color: var(--color-flat); }
   .step.자료없음, .step.비교불가 { color: var(--color-ink-3); }
 
+  /* 왼쪽 열의 남는 높이를 이 상자가 가져간다 — 아래가 비면 카드가 기운다 */
   .stat { background: var(--color-paper-1); padding: var(--space-lg);
-          display: flex; flex-direction: column; gap: var(--space-2xs); }
+          display: flex; flex-direction: column; gap: var(--space-xs);
+          flex: 1; justify-content: center; }
+  .stat .kk { font-size: var(--text-xs); letter-spacing: .1em;
+              color: var(--color-ink-3); }
   .stat .k { display: flex; align-items: center; gap: var(--space-xs);
-             font-size: var(--text-md); color: var(--color-ink-1); }
+             font-size: var(--text-lg); color: var(--color-ink-1);
+             margin-bottom: var(--space-2xs); }
   .stat .k::before { content: ""; width: 15px; height: 15px; flex: none;
                      border-radius: 999px; background: var(--color-companion); }
-  .stat .v { font-size: 2.5rem; line-height: 1.05; letter-spacing: -0.04em;
+  .stat .v { font-size: 3rem; line-height: 1.05; letter-spacing: -0.04em;
              color: var(--color-ink-0); }
   .stat .v .u { font-size: 0.42em; margin-left: 0.1em; color: var(--color-ink-2); }
-  .stat .sub { font-size: var(--text-sm); color: var(--color-ink-2); }
+  .stat .sub { font-size: var(--text-md); color: var(--color-ink-2);
+               line-height: 1.9; }
 
-  .buy { border: 1px solid var(--color-leaf-line); padding: var(--space-md);
+  /* 테두리와 안여백을 두면 이 상자만 24px 안으로 들어가 그래프와
+     좌우 끝이 어긋난다. 구분은 위쪽 실선 하나로 충분하다 */
+  .buy { border-top: 1px solid var(--color-leaf-line);
+         padding-top: var(--space-md);
          display: flex; flex-direction: column; gap: var(--space-2xs); }
   .buy .k { font-size: var(--text-xs); letter-spacing: .04em;
             color: var(--color-ink-2); }
@@ -291,9 +300,9 @@
   .peak .d { margin-left: auto; font-size: var(--text-lg);
              color: var(--color-up); }
 
-  .read { margin: var(--space-sm) 0 0; font-size: var(--text-sm);
-          line-height: 1.6; color: var(--color-ink-1);
-          padding-top: var(--space-sm);
+  .read { margin: var(--space-md) 0 0; font-size: var(--text-base);
+          line-height: 1.95; color: var(--color-ink-1);
+          padding-top: var(--space-md);
           border-top: 1px solid var(--color-leaf-line); }
   .read strong { font-weight: inherit; }
 

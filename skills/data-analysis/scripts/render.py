@@ -73,9 +73,10 @@ def 그래프(점들: list[dict], 대상월: str, 구간이름: str = "",
     최대 = max(값 + 쓸전국)
     폭 = (최대 - 최소) or 1
     W, H, PAD = 100, 56, 4
+    PADX = 0        # 가로는 끝까지 — 캡션·범례와 같은 세로선에서 시작·끝난다
 
     def 좌표(i: int, v: float) -> tuple[float, float]:
-        x = PAD + (W - PAD * 2) * (i / max(len(값) - 1, 1))
+        x = PADX + (W - PADX * 2) * (i / max(len(값) - 1, 1))
         y = PAD + (H - PAD * 2) * (1 - (v - 최소) / 폭)
         return round(x, 2), round(y, 2)
 
@@ -87,14 +88,14 @@ def 그래프(점들: list[dict], 대상월: str, 구간이름: str = "",
         자리 = [좌표(i, v) for i, v in enumerate(전국값) if v]
         전국선 = ('<polyline class="med" points="'
                 + " ".join(f"{x},{y}" for x, y in 자리) + '"/>')
-    면 = f"{PAD},{H - PAD} {선} {점자리[-1][0]},{H - PAD}"
+    면 = f"{PADX},{H - PAD} {선} {점자리[-1][0]},{H - PAD}"
     끝x, 끝y = 점자리[-1]
     올해 = 같은달[-1]
     처음 = 같은달[0]
 
     눈금 = "".join(
-        f'<line x1="{PAD}" y1="{round(PAD + (H - PAD * 2) * f, 2)}" '
-        f'x2="{W - PAD}" y2="{round(PAD + (H - PAD * 2) * f, 2)}" '
+        f'<line x1="{PADX}" y1="{round(PAD + (H - PAD * 2) * f, 2)}" '
+        f'x2="{W - PADX}" y2="{round(PAD + (H - PAD * 2) * f, 2)}" '
         f'class="grid"/>' for f in (0, 0.5, 1))
 
     라벨 = (f'<span>{처음["ym"][:4]}년 {int(대상월)}월 {처음["값"]:,}원</span>'
@@ -178,7 +179,10 @@ def 카드(p: dict, 순번: int, 전체: int, 대상월: str) -> str:
         f'<span class="rank fig">{순번}</span>'
         f'<span class="item">{esc(p["품목"])}</span>',
     ]
-    항목.append(f'<span class="move fig {방향}">{표기}</span></div>')
+    항목.append(
+        f'<span class="move"><span class="movek">보통 수준 '
+        f'({esc(p.get("구분", ""))} {esc(p.get("등급", ""))})</span>'
+        f'<span class="fig {방향}">{표기}</span></span></div>')
 
     # ── 왼쪽: 설명 + 큰 숫자 하나 ──
     왼 = [f'<p class="say">{굵게(p["사람말"])}</p>']
@@ -186,7 +190,8 @@ def 카드(p: dict, 순번: int, 전체: int, 대상월: str) -> str:
     if c:
         # 스탯과 해석을 한 덩어리로 둔다 — 숫자와 그 숫자에 대한 해석이
         # 따로 놓이면 눈이 두 번 왕복한다
-        속 = [f'<span class="k">{esc(c["지역"])} {esc(c["품종"])} '
+        속 = [f'<span class="kk">가장 많이 오른 곳</span>'
+             f'<span class="k">{esc(c["지역"])} {esc(c["품종"])} '
              f'{esc(c["등급"])}</span>'
              f'<span class="v fig">{esc(c["증감"]).rstrip("%")}'
              f'<span class="u">%</span></span>'
