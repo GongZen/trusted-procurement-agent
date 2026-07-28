@@ -11,7 +11,8 @@
 원본 파일은 건드리지 않는다.
 
     좌우 비율은 카드 가운데 **손잡이를 끌어서** 맞춘다.
-    나머지는 막대(슬라이더)로 맞춘다. 값은 한 번에 복사된다.
+    나머지는 막대(슬라이더)로 맞춘다. 맞춘 값은 **화면 상자에 바로**
+    쌓인다 — 클립보드가 막혀도 눈으로 읽고 긁을 수 있다.
 """
 from __future__ import annotations
 
@@ -81,6 +82,11 @@ aside h1 small { display:block; font-weight:400; font-size:11.5px;
 .k .sel { font-size:10.5px; color:var(--soft); font-family:Consolas,monospace; }
 footer { border-top:1px solid var(--rule); padding:12px 16px;
          display:flex; flex-direction:column; gap:8px; }
+#outbox { width:100%; height:120px; resize:vertical; font-size:11.5px;
+          line-height:1.6; font-family:Consolas,monospace; color:#2f3136;
+          background:#f6f7f9; border:1px solid var(--rule); padding:8px;
+          white-space:pre; overflow:auto; }
+#outbox:focus { outline:2px solid var(--blue); outline-offset:-1px; }
 button { font:inherit; font-size:13px; padding:8px 14px; cursor:pointer;
          border:1px solid var(--rule); background:#fff; }
 button.go { background:var(--blue); border-color:var(--blue); color:#fff; }
@@ -98,11 +104,15 @@ button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
   <h1>레이아웃 조절기
     <small>막대를 움직이면 왼쪽 화면이 바로 바뀝니다.
       좌우 칸 비율은 화면 가운데 <b>파란 손잡이를 끌어서</b> 맞추세요.
-      다 되면 아래 「값 복사」를 눌러 채팅에 붙여 주세요.</small></h1>
+      값은 아래 상자에 바로 쌓입니다. 그대로 채팅에 붙여 주세요.</small></h1>
   <div id="knobs"></div>
   <footer>
-    <button class="go" id="copy">값 복사</button>
-    <button id="reset">처음으로</button>
+    <textarea id="outbox" readonly spellcheck="false"
+              aria-label="맞춘 값"></textarea>
+    <div style="display:flex;gap:8px">
+      <button class="go" id="copy" style="flex:1">전체 선택 + 복사</button>
+      <button id="reset">처음으로</button>
+    </div>
     <div id="msg"></div>
   </footer>
 </aside>
@@ -132,6 +142,7 @@ function 칠하기() {
     const o = document.getElementById("o_" + k.id);
     if (o) o.value = 값[k.id] + k.unit;
   });
+  document.getElementById("outbox").value = 요약();
   손잡이위치();
 }
 
@@ -188,19 +199,26 @@ document.getElementById("reset").addEventListener("click", () => {
     document.getElementById("r_" + k.id).value = k.def; });
   비율 = 1.25; 칠하기();
 });
-document.getElementById("copy").addEventListener("click", async () => {
+// 🔴 아티팩트는 샌드박스라 navigator.clipboard 가 막힐 수 있다. 막히면
+//    값이 **콘솔로만** 가는데 그건 아무에게도 전달되지 않는다 —
+//    실제로 「콘솔에 출력했다」는 안내만 보고 값이 사라졌다.
+//    그래서 값을 **항상 화면 상자에 띄워 두고**, 복사는 거들기만 한다.
+function 요약() {
   const 바뀐 = 손잡이.filter(k => 값[k.id] !== k.def)
     .map(k => `${k.name}: ${값[k.id]}${k.unit}   (${k.sel} · ${k.prop})`);
   if (Math.abs(비율 - 1.25) > 0.01) 바뀐.push(`좌우 비율: 1 : ${비율.toFixed(2)}`);
-  const 글 = 바뀐.length ? 바뀐.join("\\n") : "바꾼 값이 없습니다.";
-  try {
-    await navigator.clipboard.writeText(글);
-    document.getElementById("msg").textContent = "복사했습니다 — 채팅에 붙여 넣으세요";
-  } catch {
-    document.getElementById("msg").textContent = "복사가 막혔습니다 — 콘솔에 출력했습니다";
-    console.log(글);
-  }
-  setTimeout(() => document.getElementById("msg").textContent = "", 4000);
+  return 바뀐.length ? 바뀐.join("\\n") : "아직 바꾼 값이 없습니다.";
+}
+document.getElementById("copy").addEventListener("click", async () => {
+  const box = document.getElementById("outbox");
+  box.focus(); box.select(); box.setSelectionRange(0, box.value.length);
+  let 됨 = false;
+  try { await navigator.clipboard.writeText(box.value); 됨 = true; } catch (e) {}
+  if (!됨) { try { 됨 = document.execCommand("copy"); } catch (e) {} }
+  document.getElementById("msg").textContent = 됨
+    ? "복사했습니다 — 채팅에 붙여 넣으세요"
+    : "복사가 막혔습니다 — 위 상자가 선택돼 있으니 Ctrl+C 를 누르세요";
+  setTimeout(() => document.getElementById("msg").textContent = "", 5000);
 });
 
 v.addEventListener("load", () => setTimeout(칠하기, 60));
