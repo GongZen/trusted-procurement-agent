@@ -25,34 +25,51 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 REF = ROOT / "reference"
 
 # 시트명 → (출력 파일명, 한국어 헤더)
+#
+# 두 참고문서를 함께 다룬다. 산지·도매는 `gds_*` 계열, 소매는 `perDay` 계열로
+# 코드 체계가 갈리므로(DATA_SOURCES §1) 양쪽 코드표가 모두 있어야 3단계가 이어진다.
 SHEETS = {
+    # 15156054 「전국 산지공판장 거래정보」 — 산지·도매 공통 `gds_*`
     "공판장코드": ("trial_halls.csv", ["공판장코드", "공판장명"]),
     "상품대분류코드": ("goods_large.csv", ["대분류코드", "대분류명"]),
     "상품중분류코드": ("goods_medium.csv", ["대분류코드", "중분류코드", "중분류명"]),
     "상품소분류코드": ("goods_small.csv", ["대분류코드", "중분류코드", "소분류코드", "소분류명"]),
+
+    # 15156057 「일별 도·소매 가격정보」 — 소매 `perDay`
+    "부류코드": ("perday_category.csv", ["부류코드", "부류명"]),
+    "품목코드": ("perday_items.csv", ["부류코드", "품목코드", "품목명"]),
+    "품종코드": ("perday_varieties.csv", ["부류코드", "품목코드", "품종코드", "품종명"]),
+    "구분코드": ("perday_division.csv", ["구분코드", "구분명"]),
+    "시장코드": ("perday_markets.csv", ["시군구코드", "시장코드", "시장명"]),
 }
 
 
 def main() -> None:
     use_utf8_stdout()
     if len(sys.argv) < 2:
-        raise SystemExit("사용법: python scripts/import_code_tables.py <코드표.xlsx>")
+        raise SystemExit(
+            "사용법: python scripts/import_code_tables.py <코드표.xlsx> [코드표2.xlsx ...]")
 
     try:
         import openpyxl
     except ImportError:
         raise SystemExit("openpyxl 이 필요합니다: pip install openpyxl")
 
-    src = pathlib.Path(sys.argv[1])
-    if not src.exists():
-        raise SystemExit(f"파일을 찾을 수 없습니다: {src}")
-
     REF.mkdir(parents=True, exist_ok=True)
-    workbook = openpyxl.load_workbook(src, read_only=True)
+    for arg in sys.argv[1:]:
+        src = pathlib.Path(arg)
+        if not src.exists():
+            print(f"  ⚠️ 파일 없음: {src}")
+            continue
+        print(f"[{src.name}]")
+        옮기기(openpyxl.load_workbook(src, read_only=True))
 
+    print("\n  출처: 공공데이터포털 15156054 · 15156057 참고문서 · 이용허락범위 제한 없음")
+
+
+def 옮기기(workbook) -> None:
     for sheet_name, (out_name, header) in SHEETS.items():
         if sheet_name not in workbook.sheetnames:
-            print(f"  ⚠️ 시트 없음: {sheet_name}")
             continue
 
         sheet = workbook[sheet_name]
@@ -71,8 +88,6 @@ def main() -> None:
             writer.writerow(header)
             writer.writerows(rows)
         print(f"  → reference/{out_name}  {len(rows)}행")
-
-    print("\n  출처: 공공데이터포털 15156054 참고문서 · 이용허락범위 제한 없음")
 
 
 if __name__ == "__main__":

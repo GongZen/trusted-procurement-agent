@@ -25,7 +25,7 @@ import sys
 import pathlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from api import Client, use_utf8_stdout  # noqa: E402
+from api import use_utf8_stdout  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "reference" / "item_map.csv"
@@ -89,26 +89,30 @@ B_GROUP = [
 EXCLUDED = {"고구마순", "호박잎", "알타리무", "강낭콩", "실파"}
 
 
-def fetch_perday_items(client: Client, ym_from: str, ym_to: str) -> list[dict]:
-    """perDay 계열의 **품목 카탈로그 전체**를 받는다.
+def load_perday_items() -> list[dict]:
+    """소매(`perDay`) 품목 카탈로그를 **코드표에서** 읽는다.
 
-    `recent/price` 는 호출 1회로 끝나지만 **그날 조사된 품목만** 나온다.
-    실제로 그것만 쓰면 A그룹 61종 중 8종이 「미대응」으로 잘못 떨어졌다
-    (청경채·표고버섯·양상추·케일·블루베리·우엉·콩나물·연근 — 그날 조사가
-    없었을 뿐이다). 그래서 **월별 통계로 1년치를 훑어** 카탈로그를 만든다.
+    🔴 **관측 데이터로 카탈로그를 만들면 안 된다.** 실제로 두 번 틀렸다.
+
+        recent/price 하루치   →  97종. 그날 조사가 없던 8종이 빠졌다
+        perYearMonth 1년치    → 119종. 가격 관측이 없던 3종이 빠졌다
+                                 (청경채·자몽·케일 — 코드표에는 있다)
+        코드표                →  136종. 이것이 원본이다
+
+    관측은 「그날/그해 조사됐는가」를 말할 뿐 「품목이 존재하는가」를 말하지
+    않는다. 둘을 섞으면 품목 수가 측정할 때마다 흔들린다.
+
+        출처: 공공데이터포털 15156057 참고문서 「(참고)일별 도,소매 가격정보_코드.xlsx」
     """
-    result = client.fetch_all(
-        "perYearMonth/price",
-        {"exmn_ym::GTE": ym_from, "exmn_ym::LTE": ym_to},
-        max_pages=120,
-    )
-    if not result.ok:
-        raise SystemExit(f"품목 목록 수집 실패: {result.error}")
-    print(f"  perYearMonth/price {ym_from}~{ym_to} "
-          f"수신 {len(result.rows)}행 (totalCount={result.total})")
-    if result.error:
-        print(f"  ⚠️ {result.error}")
-    return result.rows
+    path = ROOT / "reference" / "perday_items.csv"
+    if not path.exists():
+        raise SystemExit(
+            f"{path} 가 없습니다. 먼저 코드표를 옮기세요:\n"
+            f"  python scripts/import_code_tables.py <(참고)일별 도,소매 가격정보_코드.xlsx>"
+        )
+    with path.open(encoding="utf-8-sig") as fp:
+        return [{"ctgry_cd": r["부류코드"], "item_cd": r["품목코드"],
+                 "item_nm": r["품목명"].strip()} for r in csv.DictReader(fp)]
 
 
 def index_by_name(rows: list[dict]) -> dict[str, list[dict]]:
@@ -247,15 +251,12 @@ def build_rows(index: dict[str, list[dict]],
 def main() -> None:
     use_utf8_stdout()
     print("품목 대응표 후보를 만듭니다 — 생성은 자동, 판정은 사람입니다.")
-    ym_from = sys.argv[1] if len(sys.argv) > 1 else "202507"
-    ym_to = sys.argv[2] if len(sys.argv) > 2 else "202606"
     gds_index = load_gds_index()
     print(f"  산지·도매 품목 코드표 {len(gds_index)}개 이름")
 
-    client = Client()
-    rows = fetch_perday_items(client, ym_from, ym_to)
+    rows = load_perday_items()
     index = index_by_name(rows)
-    print(f"  perDay 고유 품목명 {len(index)}개")
+    print(f"  소매 품목 코드표 {len(index)}종")
 
     table = build_rows(index, gds_index)
     OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -274,8 +275,8 @@ def main() -> None:
     for r in need_review:
         flags = [f for f in (r["산지대응"], r["소매대응"]) if "🔴" in f]
         print(f"        {r['그룹']} {r['품목명']:8} {' / '.join(flags)}")
-    print(f"\n  호출 {client.call_count}회 사용")
-    print("  🔴 「검수」 열이 비어 있습니다. 사람이 채우기 전에는 수집에 쓰지 않습니다.")
+    print("\n  API 호출 없음 — 코드표만으로 만듭니다. 그래서 몇 번을 돌려도 같은 결과입니다.")
+    print("  「검수」 열은 사람이 뒤집는 자리입니다. X 를 적으면 그 품목은 수집에서 빠집니다.")
 
 
 if __name__ == "__main__":
