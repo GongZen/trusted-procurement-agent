@@ -154,17 +154,34 @@ class Client:
         rows = list(first.rows)
         total = first.total
         page = 2
+        중단됨 = False
         while len(rows) < total and page <= max_pages:
             nxt = self.call(op, cond, page=page)
             if not nxt.ok:
                 first.error = f"{page}페이지에서 중단: {nxt.error}"
+                중단됨 = True
                 break
             if not nxt.rows:
+                중단됨 = True
                 break
             rows.extend(nxt.rows)
             page += 1
+        if len(rows) < total and page > max_pages:
+            중단됨 = True
 
         first.rows = rows
-        if first.ok and len(rows) != total and first.error is None:
-            first.error = f"건수 불일치: totalCount={total} 수신={len(rows)}"
+
+        # 🔴 **부분 응답은 실패다.**
+        #
+        #    처음에는 error 만 적고 ok=True 로 뒀는데, 그러면 collect.py 가
+        #    반쪽 자료를 파일에 쓰고 종료코드 0 을 내며, agent.py 가 성공 지문을
+        #    저장한다. **그 자료는 영영 다시 받지 않는다.**
+        #
+        #    `fetch_all` 은 「전량을 받겠다」는 선언이므로 못 받으면 실패다.
+        #    받은 행은 함께 돌려주되(진단에 쓰인다) ok 는 False 로 둔다.
+        #    첫 페이지만 쓰는 호출은 `call()` 을 직접 쓰므로 이 규칙과 무관하다.
+        if first.ok and (중단됨 or len(rows) != total):
+            first.ok = False
+            if first.error is None:
+                first.error = f"부분 응답: totalCount={total} 수신={len(rows)}"
         return first

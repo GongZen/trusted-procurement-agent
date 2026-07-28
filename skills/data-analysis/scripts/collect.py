@@ -197,7 +197,12 @@ def main() -> None:
     산지 = 산지수집(client, 설정["수집"]["산지공판장_상위"], 날짜들, 기록) \
         if client.call_count < 한도 else []
 
+    # 🔴 **온전하지 않으면 기존 파일을 덮어쓰지 않는다.**
+    #    반쪽 자료로 덮으면 다음 판정이 조용히 틀어지고, 원본은 사라진다.
     for 이름, rows in [("retail", 소매), ("wholesale", 도매), ("origin", 산지)]:
+        if 기록["실패"] and not rows:
+            기록["경고"].append(f"{이름}: 수집 실패 — 기존 파일을 유지합니다")
+            continue
         (OUT / f"{이름}.json").write_text(
             json.dumps(rows, ensure_ascii=False), encoding="utf-8")
 
@@ -213,6 +218,11 @@ def main() -> None:
         for f in 기록["실패"][:5]:
             print(f"     {f}")
     print(f"→ {OUT.relative_to(ROOT)}/")
+
+    # 🔴 실패가 있으면 **종료코드로 알린다.** 0 을 내면 agent.py 가
+    #    성공으로 보고 지문을 갱신해 다음 주기에 다시 받지 않는다.
+    if 기록["실패"]:
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

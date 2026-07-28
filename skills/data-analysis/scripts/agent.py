@@ -92,13 +92,36 @@ def 지문만들기(행들: list[dict]) -> str:
 
     가격을 결정하는 열만 넣는다 — 등록시각 같은 열이 섞이면 내용이 같아도
     지문이 매번 달라진다.
+
+    🔴 **판정에 쓰는 식별 열을 하나도 빠뜨리면 안 된다.**
+       `sgg_cd`(시군구)·`mrkt_cd`(시장)를 빼놓았더니, 서울 1,000원과
+       부산 2,000원이 서로 맞바뀐 두 입력이 **같은 지문**이 됐다.
+       지역이 바뀌면 판정이 바뀌는데 「변화 없음」으로 건너뛰게 된다.
     """
     핵심 = sorted(
         f"{r.get('exmn_ymd')}|{r.get('ctgry_cd')}|{r.get('item_cd')}|"
         f"{r.get('vrty_cd')}|{r.get('grd_cd')}|{r.get('se_cd')}|"
-        f"{r.get('exmn_dd_prc')}"
+        f"{r.get('sgg_cd')}|{r.get('mrkt_cd')}|{r.get('exmn_dd_prc')}"
         for r in 행들)
     return hashlib.sha256("\n".join(핵심).encode("utf-8")).hexdigest()[:16]
+
+
+def 스냅샷지문() -> str:
+    """인증키가 없을 때 쓰는 지문 — **동봉 스냅샷 파일의 내용**으로 만든다.
+
+    🔴 심사자는 키 없이 돌린다. 그 경로에 지문이 없으면 매번 「새 자료 처리」가
+       나와, **정작 심사 환경에서 「어제와 같으면 건너뛴다」가 안 보인다.**
+       파일이 안 바뀌면 지문도 안 바뀌어야 한다.
+    """
+    조각 = []
+    for 이름 in ("retail", "wholesale", "origin", "origin_history"):
+        경로 = paths.어디에(이름)
+        if 경로.exists():
+            st = 경로.stat()
+            조각.append(f"{경로.name}|{st.st_size}|{int(st.st_mtime)}")
+    if not 조각:
+        return ""
+    return hashlib.sha256("\n".join(sorted(조각)).encode("utf-8")).hexdigest()[:16]
 
 
 def 오늘시세(client: Client) -> tuple[list[dict], str | None]:
@@ -114,7 +137,7 @@ def 오늘시세(client: Client) -> tuple[list[dict], str | None]:
 
 
 # ── ② 실행 ───────────────────────────────────────────────────────────
-def 파이프라인실행(수집함: bool = True) -> tuple[bool, list[str]]:
+def 파이프라인실행(수집함: bool = True, 기준일: str = "") -> tuple[bool, list[str]]:
     """수집·판정·산출을 **별도 프로세스로** 돌린다.
 
     같은 프로세스에서 import 해 부르면 한쪽이 죽을 때 루프가 함께 죽는다.
@@ -126,18 +149,24 @@ def 파이프라인실행(수집함: bool = True) -> tuple[bool, list[str]]:
        실패할 것을 아는 일을 시작하지 않는다.
     """
     문제: list[str] = []
-    단계 = ([("수집", ["collect.py"])] if 수집함 else []) + [("판정", ["run.py"])]
-    for 이름, 인자 in 단계:
+    수집됨 = True
+    단계 = ([("수집", "collect.py", 기준일)] if 수집함 else []) + [("판정", "run.py", "")]
+    for 이름, 파일, 인자 in 단계:
+        명령 = [sys.executable, str(paths.SKILL / "scripts" / 파일)]
+        if 인자:
+            명령.append(인자)
         try:
-            p = subprocess.run(
-                [sys.executable, str(paths.SKILL / "scripts" / 인자[0])],
-                capture_output=True, text=True, encoding="utf-8",
-                errors="replace", timeout=3600)
+            p = subprocess.run(명령, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", timeout=3600)
             if p.returncode != 0:
                 꼬리 = (p.stderr or p.stdout or "").strip().splitlines()[-3:]
                 문제.append(f"{이름} 실패(코드 {p.returncode}): {' / '.join(꼬리)}")
                 if 이름 == "수집":
-                    continue          # 수집이 실패해도 기존 수집본으로 판정은 해본다
+                    # 🔴 기존 수집본으로 판정은 시도하되 **성공으로 치지 않는다.**
+                    #    True 를 돌려주면 agent 가 지문을 갱신해 다음 주기에
+                    #    다시 받지 않는다 — 실패한 자료가 그대로 굳는다.
+                    수집됨 = False
+                    continue
                 return False, 문제
         except subprocess.TimeoutExpired:
             문제.append(f"{이름} 시간 초과 — 다음 주기로 넘깁니다")
@@ -145,7 +174,7 @@ def 파이프라인실행(수집함: bool = True) -> tuple[bool, list[str]]:
         except Exception as exc:                           # noqa: BLE001
             문제.append(f"{이름} 예외: {type(exc).__name__}: {exc}")
             return False, 문제
-    return True, 문제
+    return 수집됨, 문제
 
 
 def 판정읽기() -> list[dict]:
@@ -168,13 +197,23 @@ def 한바퀴() -> 주기결과:
     except ApiKeyMissing:
         # 인증키가 없는 환경(심사자)에서는 수집본만으로 한 바퀴를 돈다
         결과.문제.append("인증키 없음 — 수집을 건너뛰고 동봉 스냅샷으로 판정합니다")
+        결과.지문 = 스냅샷지문()
+
+        if 결과.지문 and 결과.지문 == 상태.get("지문") and not 상태.get("이월"):
+            # 스냅샷이 그대로면 다시 판정하지 않는다 — 키가 있을 때와 같은 규칙
+            결과.상태 = "변화없음"
+            상태.setdefault("이력", []).append(asdict(결과))
+            상태쓰기(상태)
+            return 결과
+
+        이전판정 = 상태.get("판정", [])
         됨, 문제 = 파이프라인실행(수집함=False)
         결과.문제.extend(문제)
         결과.상태 = "새로운자료" if 됨 else "실패"
         결과.산출 = 됨
         if 됨:
-            결과.변화 = compare.차이문장(상태.get("판정", []), 판정읽기())
-            상태["판정"] = 판정읽기()
+            결과.변화 = compare.차이문장(이전판정, 판정읽기())
+            상태.update({"지문": 결과.지문, "판정": 판정읽기(), "이월": []})
         상태.setdefault("이력", []).append(asdict(결과))
         상태쓰기(상태)
         return 결과
@@ -202,7 +241,7 @@ def 한바퀴() -> 주기결과:
 
         # ② 실행
         이전판정 = 상태.get("판정", [])
-        됨, 문제 = 파이프라인실행()
+        됨, 문제 = 파이프라인실행(기준일=결과.기준일)
         결과.문제.extend(문제)
         결과.산출 = 됨
 

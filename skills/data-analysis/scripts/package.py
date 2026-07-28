@@ -75,8 +75,30 @@ def 만들기(파일들: list[pathlib.Path], 이름: str, 접두: str) -> pathli
     return 경로
 
 
+필수 = ["SKILL.md", "AGENT.md", "README.md",
+      "reference/item_map.csv", "config/settings.json",
+      "scripts/agent.py", "scripts/run.py", "templates/report.html"]
+
+
+def 필수검사() -> list[str]:
+    """🔴 **형식 누락은 내용과 무관하게 탈락이다.**
+
+    1차 심사가 필수 제출물 여부를 기계적으로 스크리닝한다. 조용히 빠진 파일이
+    있으면 그대로 나간다. 담기 전에 막는다.
+    """
+    return [f for f in 필수 if not (SKILL / f).exists()]
+
+
 def main() -> None:
     use_utf8_stdout()
+    빠짐 = 필수검사()
+    if 빠짐:
+        print("🔴 필수 파일이 없습니다. 담지 않고 멈춥니다:")
+        for f in 빠짐:
+            print(f"   {f}")
+        raise SystemExit(1)
+    print(f"  필수 파일 {len(필수)}개 확인")
+
     파일들 = 담을파일들()
     print(f"담을 파일 {len(파일들)}개")
 

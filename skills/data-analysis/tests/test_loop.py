@@ -34,6 +34,7 @@ def 확인(조건: bool, 설명: str) -> None:
 def 가짜시세(가격: int, n: int = 3) -> list[dict]:
     return [{"exmn_ymd": "20260727", "ctgry_cd": "200", "item_cd": f"2{i:02d}",
              "vrty_cd": "00", "grd_cd": "04", "se_cd": "01",
+             "sgg_cd": "1101", "mrkt_cd": "0110200",
              "exmn_dd_prc": str(가격 + i)} for i in range(n)]
 
 
@@ -54,9 +55,19 @@ class 가짜클라이언트:
 
 
 def 판놓기(시세, 파이프라인=None, 판정결과=None, 오류=None):
-    """루프 바깥의 세계를 통째로 가짜로 바꾼다."""
+    """루프 바깥의 세계를 통째로 가짜로 바꾼다.
+
+    🔴 가짜 함수는 **진짜와 같은 인자를 받아야** 한다. 인자를 안 받게 두었더니
+       `파이프라인실행(기준일=…)` 로 바뀌었을 때 TypeError 가 났고, 루프가
+       그것을 삼켜 「실패」로 기록했다. **시험만 조용히 깨졌다.**
+       그래서 `*a, **k` 로 열어 둔다.
+    """
     agent.Client = lambda *a, **k: 가짜클라이언트(시세, 오류)          # noqa: E731
-    agent.파이프라인실행 = 파이프라인 or (lambda: (True, []))
+    기본 = (lambda *a, **k: (True, []))                               # noqa: E731
+    if 파이프라인 is None:
+        agent.파이프라인실행 = 기본
+    else:
+        agent.파이프라인실행 = lambda *a, **k: 파이프라인()             # noqa: E731
     agent.판정읽기 = lambda: (판정결과 or [])                          # noqa: E731
 
 
