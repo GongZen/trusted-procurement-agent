@@ -33,7 +33,7 @@
     background-attachment: fixed;
     padding: 0 var(--space-md) var(--space-3xl);
   }
-  ::selection { background: var(--color-up); color: var(--color-paper-0); }
+  ::selection { background: var(--color-mark); color: var(--color-paper-0); }
   :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px;
                    border-radius: var(--radius-sm); }
   .fig { font-family: var(--font-mono); font-variant-numeric: tabular-nums;
@@ -95,9 +95,12 @@
   .legend { border: 1px solid var(--color-leaf-line);
             background: var(--color-leaf);
             -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-  .legend > summary .eyebrow { font-family: var(--font-body); font-size: var(--text-md);
-                               letter-spacing: 0; text-transform: none;
-                               color: var(--color-ink-0); }
+  /* 🔴 `.eyebrow` 를 재정의해 쓰지 않는다. 그 클래스는 mono 를 물고 있어서,
+     한 군데라도 규칙이 어긋나면 조용히 mono 로 떨어진다. **아예 다른
+     클래스**를 쓰고 자형을 직접 적는다 — 상속 사고가 구조적으로 불가능해진다. */
+  .legend > summary .ttl {
+    font: inherit;                       /* 본문과 완전히 같게 — 굵기도 상속 */
+    font-size: var(--text-md); color: var(--color-ink-0); }
   .legend > summary { cursor: pointer; list-style: none;
                       padding: var(--space-md) var(--space-lg);
                       display: flex; align-items: center; gap: var(--space-xs); }
@@ -105,7 +108,7 @@
   .legend > summary::after { content: "＋"; margin-left: auto;
                              color: var(--color-ink-2); font-size: var(--text-sm); }
   .legend[open] > summary::after { content: "－"; }
-  .legend > summary:hover { color: var(--color-up); }
+  .legend > summary:hover { color: var(--color-accent); }
   .legend .body { padding: 0 var(--space-lg) var(--space-lg);
                   border-top: var(--rule-hair); padding-top: var(--space-md); }
   .legend dl { margin: 0; display: grid; gap: var(--space-sm) var(--space-lg);
@@ -155,16 +158,16 @@
          display: grid; place-items: center;
          transition: color var(--dur-fast) var(--ease-out),
                      border-color var(--dur-fast) var(--ease-out); }
-  .nav:hover { color: var(--color-up); border-color: var(--color-up); }
+  .nav:hover { color: var(--color-accent); border-color: var(--color-accent); }
   .nav:disabled { opacity: .35; cursor: default; }
   .pips { display: flex; gap: var(--space-2xs); }
-  .pip:hover { border-color: var(--color-up); }
+  .pip:hover { border-color: var(--color-accent); }
   .nav-m { display: none; }
   .pip { width: 7px; height: 7px; padding: 0; cursor: pointer;
          border: 0; border-radius: var(--radius-pill);
          background: var(--color-paper-3);
          transition: background var(--dur-fast) var(--ease-out); }
-  .pip[aria-current="true"] { background: var(--color-up); }
+  .pip[aria-current="true"] { background: var(--color-mark); }
   .count { font-size: var(--text-sm); color: var(--color-ink-3); }
   .count b { font-weight: inherit; color: var(--color-ink-0); }
 
@@ -195,13 +198,15 @@
   /* 올해만 칠한다 — 눈이 한 번에 찾아간다 */
   .chart .bar.now .yr,
   .chart .bar.now .val { color: var(--color-ink-0); font-weight: 600; }
-  .chart .bar.now .fill { background: var(--color-accent); }
+  /* 🔴 막대를 액센트(파랑)로 칠하면 「감소」 색과 같아 방향으로 오독된다.
+     막대는 방향이 아니라 **순위**를 말하므로 배경 계열의 연두를 쓴다. */
+  .chart .bar.now .fill { background: var(--color-companion); }
   .chart .legend-line { display: flex; flex-wrap: wrap;
                         gap: var(--space-2xs) var(--space-md);
                         font-size: var(--text-xs); color: var(--color-ink-2); }
   .chart .lg { display: inline-flex; align-items: center; gap: var(--space-2xs); }
   .chart .lg.pick::before { content: ""; width: 10px; height: 10px;
-                            border-radius: 2px; background: var(--color-accent); }
+                            border-radius: 2px; background: var(--color-companion); }
   .chart .lg.pick b { color: var(--color-ink-0); font-weight: 600; }
   /* 「월평균값·막대 시작점」 설명은 범례 오른쪽 여백에 붙인다 */
   .chart .lg.note { margin-left: auto; color: var(--color-ink-3); text-align: right; }
@@ -231,10 +236,13 @@
   .entry-head .item { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em;
                       letter-spacing: -0.035em; line-height: 1.1; }
   .entry-head .move { margin-left: auto; display: flex; flex-direction: column;
-                      align-items: flex-end; line-height: 1.25; }
+                      align-items: flex-end; gap: var(--space-2xs);
+                      line-height: 1.25; }
   .entry-head .movek { font-size: var(--text-xs); color: var(--color-ink-3); }
   .entry-head .move .fig { font-size: var(--text-xl); font-weight: 600;
                            color: var(--color-ink-0); }
+  .entry-head .move .fig.up   { color: var(--color-up); }
+  .entry-head .move .fig.down { color: var(--color-down); }
   .badge { font-family: var(--font-mono); font-size: var(--text-xs);
            letter-spacing: 0.06em; color: var(--color-warning);
            border: 1px solid currentColor; border-radius: var(--radius-pill);
@@ -257,9 +265,9 @@
   .step .was { font-size: var(--text-xs); color: var(--color-ink-3); }
   .step .now { font-size: var(--text-lg); font-weight: 600; }
   .step .dt  { font-size: var(--text-lg); font-weight: 600; }
-  .step.up   { background: var(--color-leaf-2); }
+  .step.up   { background: var(--color-up-soft); }
   .step.up .dt   { color: var(--color-up); }
-  .step.down { background: var(--color-paper-0); }
+  .step.down { background: var(--color-down-soft); }
   .step.down .dt { color: var(--color-down); }
   .step.평년수준 .dt { color: var(--color-flat); }
   .step.자료없음, .step.비교불가 { color: var(--color-ink-3); }
@@ -391,7 +399,7 @@
   </header>
 
   <details class="legend">
-    <summary><span class="eyebrow">가이드 (용어 설명)</span></summary>
+    <summary><span class="ttl">가이드 (용어 설명)</span></summary>
     <div class="body">
       <dl>
         <dt>평년</dt>
@@ -404,9 +412,20 @@
         <dt>고르는 기준</dt>
         <dd>취급 품목 전체를 훑어 <b>산지·도매·소매 중 한 단계라도 올해가
             평년에서 가장 높은</b> 품목만 {{고른범위}}. 예·아니오로 갈리므로
-            저희가 정할 값이 없습니다. 줄은 <b>가장 높은 단계가 많은 순서</b>로
-            세웁니다. <b>절대 가격과는 무관합니다.</b> 10만원짜리 사과보다
-            1천원짜리 고추가 앞설 수 있습니다.</dd>
+            저희가 정할 값이 없습니다. <b>절대 가격과는 무관합니다.</b>
+            10만원짜리 사과보다 1천원짜리 고추가 앞설 수 있습니다.</dd>
+        <dt>줄 세우는 순서</dt>
+        <dd><b>도매 → 산지 → 소매</b> 순입니다. 어느 단계가 가장 높은지에
+            따라 자리가 정해집니다.
+            <br><b>도매를 맨 앞에 두는 이유</b> — 구매 담당자가 실제로 계약하는
+            가격대가 도매(중도매)입니다. 산지 낙찰가나 소비자 판매가가
+            움직여도 계약 단가와 바로 이어지지 않습니다.
+            <br><b>산지를 버리지 않는 이유</b> — 도매가 아직 조용한데 산지만
+            움직인 날이 있습니다. 그것도 알아야 할 관측입니다.
+            🔴 다만 <b>「산지가 오르면 도매가 따라 온다」고 말하지 않습니다.</b>
+            선행성을 측정하지 않았기 때문입니다 — 「산지에서 관측됐다」까지입니다.
+            <br>이 순서는 <b>판정이 아니라 보여주는 차례</b>입니다. 무엇이
+            올라올지는 순서와 무관하게 위의 「고르는 기준」이 정합니다.</dd>
         <dt>높음·낮음</dt>
         <dd><b>평년에서 올해가 몇 번째인지</b>로 정합니다.
             1번째면 「가장 높음」, 마지막이면 「가장 낮음」입니다.</dd>

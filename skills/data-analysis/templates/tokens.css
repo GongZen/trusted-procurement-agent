@@ -42,11 +42,18 @@
   --color-leaf-2:    var(--color-paper-1);
   --color-leaf-line: color-mix(in oklch, var(--color-ink-0) 11%, transparent);
   --color-card:      oklch(100% 0 0);
-  --color-up:        oklch(30.0% 0.020 258);
-  --color-up-soft:   var(--color-paper-1);
-  --color-down:      oklch(50.0% 0.016 258);
-  --color-down-soft: var(--color-card);
+  /* 🔴 증감 색을 되살린다 — 전에 걷어냈던 이유(색이 많아 「무엇이 중요한가」
+     보다 「무슨 색인가」를 먼저 읽게 됨)는 **채도로 해결한다.** 신호등처럼
+     쨍한 적·청이 아니라 잉크에 가까운 낮은 채도로 둔다. 방향은 부호가
+     이미 말하고, 색은 그것을 거들 뿐이다. */
+  --color-up:        oklch(52.0% 0.150 25);    /* 오름 — 낮은 채도의 붉은 잉크 */
+  --color-up-soft:   oklch(96.5% 0.020 25);
+  --color-down:      oklch(52.0% 0.115 250);   /* 내림 — 낮은 채도의 푸른 잉크 */
+  --color-down-soft: oklch(96.5% 0.016 250);
   --color-flat:      oklch(52.0% 0.018 258);
+  /* 강조 요소(넘김 버튼·점·선택)는 증감 색을 쓰지 않는다 — 방향을 뜻하지
+     않는 자리에 방향 색이 있으면 그것도 신호로 읽힌다 */
+  --color-mark:      oklch(30.0% 0.020 258);
 
   /* 🔴 한글은 OS 기본 산세로 통일한다.
    *

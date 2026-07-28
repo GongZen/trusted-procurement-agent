@@ -51,8 +51,7 @@ def 굵게(문장: str) -> str:
 
 
 # ── 시계열 그래프 ────────────────────────────────────────────────────
-def 그래프(점들: list[dict], 대상월: str, 구간이름: str = "",
-         전국: list[dict] | None = None) -> str:
+def 그래프(점들: list[dict], 대상월: str, 구간이름: str = "") -> str:
     """같은 달 값을 **큰 순서로 늘어놓은 막대**로 그린다.
 
     🔴 **전에는 꺾은선이었고, 그것이 우리가 하지 않는 주장을 했다.**
@@ -109,8 +108,6 @@ def 그래프(점들: list[dict], 대상월: str, 구간이름: str = "",
         f'올해는 {n}년 중 {순위}번째">{"".join(줄)}</div>'
         f'<div class="legend-line">'
         f'<span class="lg pick">올해 {올해연}년 — <b>{n}년 중 {순위}번째</b></span>'
-        f'<span class="lg note">각 해 {int(대상월)}월의 월평균값 · '
-        f'막대는 {바닥:,.0f}원부터</span>'
         f'</div>'
         f'</figure>')
 
@@ -203,9 +200,9 @@ def 카드(p: dict, 순번: int, 전체: int, 대상월: str) -> str:
         f'<span class="item">{esc(p["품목"])}</span>',
     ]
     항목.append(
-        f'<span class="move"><span class="movek">{자리(p.get("순위표기"))} '
-        f'({구분말(p.get("구분", ""))} {esc(p.get("등급", ""))})</span>'
-        f'<span class="fig {방향}">{표기}</span></span></div>')
+        f'<span class="move"><span class="movek">{esc(p.get("주인공단계", ""))} '
+        f'단계 · {esc(p.get("주인공단위", ""))}</span>'
+        f'<span class="fig up">{자리(p.get("주인공순위"))}</span></span></div>')
 
     # ── 왼쪽: 설명 + 큰 숫자 하나 ──
     왼 = [f'<p class="say">{굵게(p["사람말"])}</p>']
@@ -213,12 +210,19 @@ def 카드(p: dict, 순번: int, 전체: int, 대상월: str) -> str:
     if c:
         # 스탯과 해석을 한 덩어리로 둔다 — 숫자와 그 숫자에 대한 해석이
         # 따로 놓이면 눈이 두 번 왕복한다
-        속 = [f'<span class="kk">가장 많이 오른 곳</span>'
-             f'<span class="k">{esc(c["지역"])} {esc(c["품종"])} '
-             f'{esc(c["등급"])}</span>'
+        # 🔴 「가장 많이 오른 곳」은 두 군데가 틀린 이름이었다.
+        #    ① 「곳」이 아니라 **조건**이다 — 지역×품종×등급×판매형태.
+        #    ② 「올랐다」가 아니라 **평년과 벌어졌다**이다. 시간에 따른
+        #       상승이 아니라 과거 5년 평균과의 차이다.
+        #    그리고 「1,761원 → 2,000원」만 적혀 있어 1,761 이 작년인지
+        #    평년인지 알 수 없었다. 무슨 값인지 이름을 붙인다.
+        속 = [f'<span class="kk">평년과 가장 벌어진 조건</span>'
+             f'<span class="k">{esc(c["지역"])} {esc(c.get("품종") or "")} '
+             f'{esc(c["등급"])}{f" · {구분말(c["구분"])}" if c.get("구분") else ""}</span>'
              f'<span class="v fig">{esc(c["증감"]).rstrip("%")}'
              f'<span class="u">%</span></span>'
-             f'<span class="sub fig">{c["평년"]:,}원 → {c["올해"]:,}원</span>']
+             f'<span class="sub fig">평년 평균 {c["평년"]:,}원 → '
+             f'올해 {c["올해"]:,}원</span>']
         if p.get("해석"):
             속.append(f'<p class="read">{굵게(p["해석"])}</p>')
         왼.append(f'<div class="stat">{"".join(속)}</div>')
@@ -229,8 +233,7 @@ def 카드(p: dict, 순번: int, 전체: int, 대상월: str) -> str:
     # ── 오른쪽: 그래프 + 그 아래 빈 자리에 「가장 싼 도시」 ──
     오른 = []
     if p.get("시계열"):
-        오른.append(그래프(p["시계열"], 대상월, p.get("그린구간", ""),
-                        p.get("전국선")))
+        오른.append(그래프(p["시계열"], 대상월, p.get("그린구간", "")))
     b = p.get("도시")
     if b:
         오른.append(
