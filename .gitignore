@@ -27,3 +27,11 @@ venv/
 .env
 .ipynb_checkpoints/
 .DS_Store
+
+# 인증키·자격증명 — 참가 서약의 보안 조항. 저장소에 절대 두지 않는다
+*.key
+*-key
+.datago-key
+.mafra-key
+secrets*
+credentials*
