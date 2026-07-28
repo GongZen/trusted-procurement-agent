@@ -1,6 +1,7 @@
 ---
 name: trusted-procurement-agent
 description: 매일 아침 식자재 시세를 점검해 먼저 볼 품목 다섯 개를 골라 브리핑 한 장으로 남긴다
+model: solar-open2
 schedule: "0 6 * * *"
 trigger_prompt: |
   1. 환경변수 DATAGO_KEY 가 없으면 request_env_var 로 요청한다.

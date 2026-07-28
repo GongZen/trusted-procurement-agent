@@ -30,6 +30,7 @@ KST = timezone(timedelta(hours=9))
 class 단계판정:
     """유통 한 단계에서 관측된 것. 원인이 아니라 **관측**이다."""
     단계: str                    # 산지 · 도매 · 소매
+    단위: str                    # 🔴 단계마다 다르다. 붙이지 않으면 오독한다
     올해: float | None
     평년평균: float | None
     배수: float | None
@@ -92,7 +93,22 @@ def 같은달_관측(월별행: list[dict], 대상월: str) -> dict[tuple, list[
             continue
         키 = tuple(행.get(열) for 열 in 비교키)
         버킷.setdefault(키, []).append((조사연월[:4], 평균가))
+        단위 = (행.get("unit") or "").strip()
+        크기 = (행.get("unit_sz") or "").strip()
+        if 단위:
+            단위기억[키] = f"{크기}{단위}" if 크기 and 크기 != "1" else 단위
     return 버킷
+
+
+# 🔴 **단위는 단계마다 다르다.** perDay 는 「10kg 상자」·「1단」·「1개」처럼
+#    규격 단위의 가격이고, 산지·도매 정산은 총액÷총물량이라 원/kg 이다.
+#    단위를 떼고 나란히 놓으면 3,637 → 53,382 → 1,033 처럼 아무 의미 없는
+#    나열이 된다. 실제로 그렇게 만들어 놓고 「사슬」이라고 불렀다.
+단위기억: dict[tuple, str] = {}
+
+
+def 단위표(키: tuple) -> str:
+    return 단위기억.get(키, "")
 
 
 def 품목별_집계(버킷: dict[tuple, list[tuple[str, float]]], 올해: str,
@@ -131,6 +147,7 @@ def 품목별_집계(버킷: dict[tuple, list[tuple[str, float]]], 올해: str,
             "구분": 키[1], "품종": 키[2], "등급": 키[3], "지역": 키[4],
             "올해": round(현재), "평년평균": round(statistics.mean(과거값)),
             "배수": round(배수, 2), "순위": f"{순위}/{전체}",
+            "단위": 단위표(키),
         }
         d["구간"].append(구간)
         if 순위 == 1:

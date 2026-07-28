@@ -93,14 +93,15 @@ def 산지판정(당일: float | None, 연도별: dict[str, float],
     5년치가 전부 있었다. **재보지 않고 없다고 단정한 것이 잘못**이었다.
     """
     if 당일 is None:
-        return analyze.단계판정("산지", None, None, None, None, "자료없음")
+        return analyze.단계판정("산지", "원/kg", None, None, None, None, "자료없음")
     과거 = list(연도별.values())
     if len(과거) < 최소관측수:
-        return analyze.단계판정("산지", round(당일), None, None, None,
+        return analyze.단계판정("산지", "원/kg", round(당일), None, None, None,
                             analyze.비교불가)
     순위, 전체, 배수 = analyze.순위판정(당일, 과거)
-    return analyze.단계판정("산지", round(당일), round(statistics.mean(과거)),
-                        round(배수, 2), f"{순위}/{전체}", analyze.관측표현(f"{순위}/{전체}"))
+    return analyze.단계판정("산지", "원/kg", round(당일), round(statistics.mean(과거)),
+                        round(배수, 2), f"{순위}/{전체}",
+                        analyze.관측표현(f"{순위}/{전체}"))
 
 
 # ── 판정 ─────────────────────────────────────────────────────────────
@@ -193,11 +194,11 @@ def 판정하기(설정: dict, 기준일: str, 소매행: list[dict],
             구간 = [c for c in d["구간"] if c["구분"] == 구분명]
             if 구간:
                 c = 구간[len(구간) // 2]          # 여기서도 중앙값 구간을 쓴다
-                단계.append(analyze.단계판정(이름, c["올해"], c["평년평균"],
-                                        c["배수"], c["순위"],
-                                        analyze.관측표현(c["순위"])))
+                단계.append(analyze.단계판정(
+                    이름, c.get("단위", ""), c["올해"], c["평년평균"],
+                    c["배수"], c["순위"], analyze.관측표현(c["순위"])))
             else:
-                단계.append(analyze.단계판정(이름, None, None, None, None, "자료없음"))
+                단계.append(analyze.단계판정(이름, "", None, None, None, None, "자료없음"))
 
         # 그래프가 그릴 구간을 먼저 정한다 — 문장·블록·그림이 같은 것을 가리켜야 한다
         최고 = analyze.최고지점(d)

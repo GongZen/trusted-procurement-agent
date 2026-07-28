@@ -45,9 +45,11 @@ def 어디에(이름: str) -> pathlib.Path:
     심사자가 인증키 없이 실행하면 Skill 에 동봉한 스냅샷으로 돌고,
     한 번이라도 수집했으면 그 결과가 우선한다.
     """
-    for base in (SAMPLE, SKILL / "sample-data"):
-        for 확장 in (".json.gz", ".json"):
-            후보 = base / f"{이름}{확장}"
-            if 후보.exists():
-                return 후보
+    # 슬림본이 있으면 그것을 먼저 쓴다 — 쓰지 않을 행을 매번 읽지 않는다
+    for 후보이름 in (f"{이름}_slim", 이름):
+        for base in (SAMPLE, SKILL / "sample-data"):
+            for 확장 in (".json.gz", ".json"):
+                후보 = base / f"{후보이름}{확장}"
+                if 후보.exists():
+                    return 후보
     return SAMPLE / f"{이름}.json.gz"

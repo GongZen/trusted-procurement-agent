@@ -146,7 +146,9 @@ def 체인(단계들: list[dict]) -> str:
         #    의사결정자는 비율보다 금액에 먼저 반응한다.
         if d.get("올해") and d.get("평년평균"):
             표기, 방향 = 증감(d["평년평균"], d["올해"])
-            값 = (f'<span class="was fig">평년 {d["평년평균"]:,}원</span>'
+            단위 = esc(d.get("단위") or "")
+            값 = (f'<span class="unitk">{단위}</span>'
+                 f'<span class="was fig">평년 {d["평년평균"]:,}원</span>'
                  f'<span class="now fig">{d["올해"]:,}원</span>'
                  f'<span class="dt fig">{표기}</span>')
             클래스 = f"{esc(관측)} {방향}"
@@ -337,7 +339,8 @@ def 텍스트로(보고서: dict) -> str:
                 d = 지도.get(n, {})
                 if d.get("올해") and d.get("평년평균"):
                     율 = round((d["올해"] / d["평년평균"] - 1) * 100)
-                    칸.append(f"{n} {d['평년평균']:,}→{d['올해']:,}원"
+                    칸.append(f"{n}[{d.get('단위','')}] "
+                              f"{d['평년평균']:,}→{d['올해']:,}원"
                               f"({'+' if 율 >= 0 else ''}{율}%)")
                 elif d.get("올해"):
                     칸.append(f"{n} {d['올해']:,}원(비교불가)")
