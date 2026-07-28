@@ -175,28 +175,35 @@
   .chart figcaption .cap { font-family: var(--font-mono); font-size: var(--text-xs);
                            letter-spacing: .08em; color: var(--color-ink-2);
                            text-transform: uppercase; }
-  .chart svg { width: 100%; height: 200px; display: block; }
-  .chart .grid { stroke: color-mix(in oklch, var(--color-ink-0) 7%, transparent);
-                 stroke-width: .4; vector-effect: non-scaling-stroke; }
-  .chart .s0 { stop-color: var(--color-companion); stop-opacity: .55; }
-  .chart .s1 { stop-color: var(--color-companion); stop-opacity: 0; }
-  .chart .area { fill: url(#g); }
-  .chart .line { fill: none; stroke: oklch(58% 0.14 132); stroke-width: 2;
-                 stroke-linejoin: round; stroke-linecap: round;
-                 vector-effect: non-scaling-stroke; }
-  .chart .axis { display: flex; justify-content: space-between;
-                 font-family: var(--font-mono); font-size: var(--text-xs);
-                 color: var(--color-ink-3); }
-  .chart .axis .now { color: var(--color-ink-0); }
-  .chart .med { fill: none; stroke: var(--color-ink-3); stroke-width: 1.5;
-                stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
-  .chart .legend-line { display: flex; flex-wrap: wrap; gap: var(--space-md);
+  /* 🔴 순위 막대 — 값을 큰 순서로 늘어놓는다.
+     꺾은선은 「이렇게 흘러왔다」는 추세로 읽히는데 우리는 추세를 주장하지
+     않는다. 우리가 말하는 것은 「6년 중 몇 번째」 하나뿐이므로 그림도
+     그것만 그린다. */
+  .chart .bars { display: flex; flex-direction: column; gap: 5px; }
+  .chart .bar { display: grid; grid-template-columns: 2.9rem minmax(0, 1fr) 3.6rem;
+                align-items: center; gap: var(--space-xs); }
+  .chart .bar .yr { font-family: var(--font-mono); font-size: var(--text-xs);
+                    color: var(--color-ink-3); text-align: right; }
+  .chart .bar .val { font-family: var(--font-mono); font-size: var(--text-xs);
+                     color: var(--color-ink-3); text-align: right; }
+  .chart .bar .track { height: 15px; background: color-mix(in oklch,
+                       var(--color-ink-0) 4%, transparent); border-radius: 2px; }
+  .chart .bar .fill { display: block; height: 100%; border-radius: 2px;
+                      background: color-mix(in oklch, var(--color-ink-0) 13%, transparent);
+                      min-width: 3px; }
+  /* 올해만 칠한다 — 눈이 한 번에 찾아간다 */
+  .chart .bar.now .yr,
+  .chart .bar.now .val { color: var(--color-ink-0); font-weight: 600; }
+  .chart .bar.now .fill { background: var(--color-accent); }
+  .chart .legend-line { display: flex; flex-wrap: wrap;
+                        gap: var(--space-2xs) var(--space-md);
                         font-size: var(--text-xs); color: var(--color-ink-2); }
   .chart .lg { display: inline-flex; align-items: center; gap: var(--space-2xs); }
-  .chart .lg::before { content: ""; width: 14px; height: 2px; }
-  .chart .lg.pick::before { background: oklch(58% 0.14 132); }
-  .chart .lg.med::before { background: repeating-linear-gradient(to right,
-      var(--color-ink-3) 0 4px, transparent 4px 7px); }
+  .chart .lg.pick::before { content: ""; width: 10px; height: 10px;
+                            border-radius: 2px; background: var(--color-accent); }
+  .chart .lg.pick b { color: var(--color-ink-0); font-weight: 600; }
+  /* 「월평균값·막대 시작점」 설명은 범례 오른쪽 여백에 붙인다 */
+  .chart .lg.note { margin-left: auto; color: var(--color-ink-3); text-align: right; }
   .entry { border: 1px solid var(--color-leaf-line);
            background: var(--color-card);
            padding: var(--space-xl);
@@ -383,39 +390,36 @@
   </header>
 
   <details class="legend">
-    <summary><span class="eyebrow">가이드</span></summary>
+    <summary><span class="eyebrow">가이드 (용어 설명)</span></summary>
     <div class="body">
       <dl>
         <dt>평년</dt>
-        <dd>최근 <b>5년</b>의 <b>같은 달</b> 관측입니다. 작년 한 해가 아니라 5년치를
-            늘어놓고 올해가 그중 몇 번째인지 봅니다. 계절이 지배하는 품목이라
-            같은 달끼리만 비교합니다.</dd>
+        <dd>최근 <b>5년</b>의 <b>같은 달</b> 데이터입니다.
+            올해가 평년에서 어느 수준을 가지는지 측정합니다.</dd>
         <dt>조사 도시</dt>
-        <dd>농산물유통정보가 <b>매일 시세를 조사하는 전국 25개 도시</b>입니다.
-            서울·부산·대구·인천·광주·대전·울산·세종, 수원·성남·고양·용인·의정부,
-            춘천·강릉·청주·천안·전주·순천·포항·안동·창원·김해·제주, 그리고 온라인.</dd>
+        <dd>농산물유통정보가 <b>매일 시세를 조사하는 전국 24개 도시 + 온라인</b>입니다.
+            서울·부산·대구·인천·광주·대전·울산·세종·수원·성남·고양·용인·의정부·
+            춘천·강릉·청주·천안·전주·순천·포항·안동·창원·김해·제주</dd>
         <dt>고르는 기준</dt>
-        <dd>취급 품목 전체를 훑어 <b>조사 도시 중 최근 5년 같은 달 최고가인
-            도시가 가장 많은 순서</b>로 {{고른범위}}. 개수가 아니라 비율로
-            봅니다 — 조사 도시가 많은 품목이 무조건 앞서면 안 되기 때문입니다.
-            <b>절대 가격과는 무관합니다.</b> 10만원짜리 사과보다 1천원짜리
-            고추가 앞설 수 있습니다. 각자의 평소와 얼마나 벌어졌는지만 봅니다.</dd>
+        <dd>취급 품목 전체를 훑어 <b>산지·도매·소매 중 한 단계라도 올해가
+            평년에서 가장 높은</b> 품목만 {{고른범위}}. 예·아니오로 갈리므로
+            저희가 정할 값이 없습니다. 줄은 <b>가장 높은 단계가 많은 순서</b>로
+            세웁니다. <b>절대 가격과는 무관합니다.</b> 10만원짜리 사과보다
+            1천원짜리 고추가 앞설 수 있습니다.</dd>
         <dt>높음·낮음</dt>
-        <dd>과거 같은 달 관측을 늘어놓고 <b>올해가 몇 번째인지</b>로 정합니다.
-            1번째면 「가장 높음」, 마지막이면 「가장 낮음」입니다.
-            <b>「몇 % 넘으면 높음」 같은 기준선을 쓰지 않습니다</b> —
-            그 선을 정하는 순간 저희 판단이 섞이기 때문입니다.</dd>
+        <dd><b>평년에서 올해가 몇 번째인지</b>로 정합니다.
+            1번째면 「가장 높음」, 마지막이면 「가장 낮음」입니다.</dd>
         <dt>판정하지 않은 것</dt>
         <dd>{{판정제외}}</dd>
         <dt>유통 3단계</dt>
         <dd><b>산지</b>는 전국 산지공판장 낙찰가, <b>도매</b>는 도매시장 중도매인 가격,
-            <b>소매</b>는 소비자 판매가입니다. 각 단계는 <b>자기 평년과만</b> 비교합니다 —
+            <b>소매</b>는 소비자 판매가입니다. 각 단계는 자기 평년과만 비교합니다 —
             단위가 달라 서로 빼거나 나누지 않습니다.</dd>
       </dl>
       <div class="more">
-        <h3>모든 품목에 공통으로 해당하는 것</h3>
+        <h3>모든 품목 공통 사항</h3>
         <ul>{{공통유의}}</ul>
-        <h3>이 보고서가 답하지 않는 것</h3>
+        <h3>이 보고서가 확인할 수 없는 것</h3>
         <ul>{{한계들}}</ul>
         <h3>근거</h3>
         <div class="scroll"><table class="audit">{{근거표}}</table></div>

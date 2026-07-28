@@ -53,14 +53,23 @@ def 굵게(문장: str) -> str:
 # ── 시계열 그래프 ────────────────────────────────────────────────────
 def 그래프(점들: list[dict], 대상월: str, 구간이름: str = "",
          전국: list[dict] | None = None) -> str:
-    """월별 가격 추이를 면적 그래프로 그린다.
+    """같은 달 값을 **큰 순서로 늘어놓은 막대**로 그린다.
 
-    문장은 「지금 어디쯤인가」를 말하고, 이 선은 「어떤 길로 여기 왔는가」를
-    보여준다. 둘은 대체 관계가 아니다.
+    🔴 **전에는 꺾은선이었고, 그것이 우리가 하지 않는 주장을 했다.**
 
-    🔑 **같은 달만 점으로 찍는다.** 계절 진폭이 워낙 커서 전 구간을 이으면
-    톱니만 보이고 연도 간 차이가 묻힌다. 우리가 판정한 것도 같은 달끼리의
-    비교이므로 그림과 판정이 어긋나지 않아야 한다.
+       선은 「이렇게 흘러왔다」는 추세로 읽힌다. 그런데 우리는 추세를
+       주장하지 않는다 — 선행성을 측정하지 않았고 예측하지 않는다고
+       화면에 적어 두었다. 전국 중앙값 점선까지 겹쳐 두 선의 교차를
+       읽게 만들었는데, 그것도 우리가 말하지 않는 이야기였다.
+
+       우리가 실제로 말하는 것은 **「6년 중 몇 번째」** 하나다. 그러면
+       그림도 그것을 그려야 한다. 값을 큰 순서로 늘어놓고 올해만 칠하면,
+       **읽는 법을 배울 필요 없이** 순위가 그대로 보인다.
+
+    🔑 **같은 달만 쓴다.** 계절 진폭이 커서 전 구간을 이으면 톱니만 보이고
+       연도 간 차이가 묻힌다. 판정도 같은 달끼리이므로 그림과 어긋나지
+       않아야 한다. 그 사실을 캡션에 **글로 밝힌다** — 그림만 보고는
+       7월끼리라는 것을 알 수 없다.
     """
     같은달 = [p for p in 점들 if p["ym"][4:] == 대상월]
     if len(같은달) < 3:
@@ -68,62 +77,72 @@ def 그래프(점들: list[dict], 대상월: str, 구간이름: str = "",
 
     값 = [p["값"] for p in 같은달]
     연도 = [p["ym"][:4] for p in 같은달]
-    전국맵 = {q["ym"][:4]: q["값"] for q in (전국 or []) if q["ym"][4:] == 대상월}
-    전국값 = [전국맵.get(y) for y in 연도]
-    쓸전국 = [v for v in 전국값 if v]
-    최소 = min(값 + 쓸전국)
-    최대 = max(값 + 쓸전국)
-    폭 = (최대 - 최소) or 1
-    W, H, PAD = 100, 56, 4
-    PADX = 0        # 가로는 끝까지 — 캡션·범례와 같은 세로선에서 시작·끝난다
+    올해연 = 연도[-1]
+    n = len(값)
+    순위 = sorted(값, reverse=True).index(값[-1]) + 1
 
-    def 좌표(i: int, v: float) -> tuple[float, float]:
-        x = PADX + (W - PADX * 2) * (i / max(len(값) - 1, 1))
-        y = PAD + (H - PAD * 2) * (1 - (v - 최소) / 폭)
-        return round(x, 2), round(y, 2)
+    # 막대 길이의 기준점 — 0 이 아니라 **가장 싼 해의 90%**에서 시작한다.
+    # 0 부터 그리면 6개가 다 비슷해 보여 순위가 안 보인다. 다만 기준선을
+    # 감추면 과장이 되므로, 축 아래에 시작값을 적는다.
+    바닥 = min(값) * 0.9
+    폭 = (max(값) - 바닥) or 1
 
-    점자리 = [좌표(i, v) for i, v in enumerate(값)]  # 끝점 표식은 두지 않는다 — 선만으로 읽힌다
-    선 = " ".join(f"{x},{y}" for x, y in 점자리)
-    # 전국 중앙값 선 — 한 구간만 그리면 그 선이 높은지 낮은지 알 수 없다
-    전국선 = ""
-    if len(쓸전국) >= 3:
-        자리 = [좌표(i, v) for i, v in enumerate(전국값) if v]
-        전국선 = ('<polyline class="med" points="'
-                + " ".join(f"{x},{y}" for x, y in 자리) + '"/>')
-    면 = f"{PADX},{H - PAD} {선} {점자리[-1][0]},{H - PAD}"
-    끝x, 끝y = 점자리[-1]
-    올해 = 같은달[-1]
-    처음 = 같은달[0]
-
-    눈금 = "".join(
-        f'<line x1="{PADX}" y1="{round(PAD + (H - PAD * 2) * f, 2)}" '
-        f'x2="{W - PADX}" y2="{round(PAD + (H - PAD * 2) * f, 2)}" '
-        f'class="grid"/>' for f in (0, 0.5, 1))
-
-    라벨 = (f'<span>{처음["ym"][:4]}년 {int(대상월)}월 {처음["값"]:,}원</span>'
-          f'<span class="now">{올해["ym"][:4]}년 {올해["값"]:,}원</span>')
+    줄 = []
+    for v, y in sorted(zip(값, 연도), key=lambda x: -x[0]):
+        올해냐 = y == 올해연
+        길이 = round((v - 바닥) / 폭 * 100, 1)
+        줄.append(
+            f'<div class="bar{" now" if 올해냐 else ""}">'
+            f'<span class="yr fig">{y}</span>'
+            f'<span class="track"><span class="fill" style="width:{길이}%"></span></span>'
+            f'<span class="val fig">{v:,}</span>'
+            f'</div>')
 
     return (
         f'<figure class="chart">'
-        f'<figcaption><span class="cap">{int(대상월)}월 가격 · 최근 {len(값)}년'
-        f'</span>{f"<span class='seg'>{esc(구간이름)}</span>" if 구간이름 else ""}'
+        f'<figcaption><span class="cap">{int(대상월)}월끼리만 비교 · '
+        f'평년 {n - 1}년 + 올해</span>'
+        f'{f"<span class=\'seg\'>{esc(구간이름)}</span>" if 구간이름 else ""}'
         f'</figcaption>'
-        f'<svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" '
-        f'role="img" aria-label="{int(대상월)}월 가격 추이">'
-        f'<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">'
-        f'<stop offset="0%" class="s0"/><stop offset="100%" class="s1"/>'
-        f'</linearGradient></defs>'
-        f'{눈금}'
-        f'<polygon class="area" points="{면}"/>'
-        f'{전국선}'
-        f'<polyline class="line" points="{선}"/>'
-        f'</svg>'
-        f'<div class="axis">{라벨}</div>'
+        f'<div class="bars" role="img" '
+        f'aria-label="{int(대상월)}월 값을 큰 순서로 늘어놓음. '
+        f'올해는 {n}년 중 {순위}번째">{"".join(줄)}</div>'
         f'<div class="legend-line">'
-        f'<span class="lg pick">{esc(구간이름.split(" · ")[0])}</span>'
-        + (f'<span class="lg med">같은 조건 전국 중앙값</span>' if 전국선 else "")
-        + f'</div>'
+        f'<span class="lg pick">올해 {올해연}년 — <b>{n}년 중 {순위}번째</b></span>'
+        f'<span class="lg note">각 해 {int(대상월)}월의 월평균값 · '
+        f'막대는 {바닥:,.0f}원부터</span>'
+        f'</div>'
         f'</figure>')
+
+
+def 자리(순위표기: str | None) -> str:
+    """「6년 중 1번째」. 🔴 **전에는 여기에 「보통 수준」이 박혀 있었다.**
+
+    1번째든 마지막이든 늘 「보통 수준」이 나왔다. 화면이 판정과 무관한
+    말을 하고 있었던 것이다. 이 자리에는 우리 판정 축을 그대로 쓴다.
+
+    숫자를 만드는 것이 아니라 이미 판정된 `"1/6"` 을 사람 말로 옮길
+    뿐이므로, 렌더러가 계산하지 않는다는 규칙과 어긋나지 않는다.
+    """
+    try:
+        순위, 전체 = (int(v) for v in (순위표기 or "").split("/"))
+    except (ValueError, AttributeError):
+        return "비교불가"
+    if 순위 == 1:
+        return f"{전체}년 중 가장 높음"
+    if 순위 == 전체:
+        return f"{전체}년 중 가장 낮음"
+    return f"{전체}년 중 {순위}번째"
+
+
+# 🔴 원자료의 `se_nm` 은 「중도매」인데 우리 화면은 그 단계를 「도매」라고
+#    부른다(가이드 「유통 3단계」). 한 화면에서 같은 것을 두 이름으로
+#    부르면 읽는 사람이 다른 것으로 오해한다. 화면 어휘로 통일한다.
+구분표 = {"중도매": "도매"}
+
+
+def 구분말(값: str) -> str:
+    return esc(구분표.get(값, 값))
 
 
 def 원(값) -> str:
@@ -184,8 +203,8 @@ def 카드(p: dict, 순번: int, 전체: int, 대상월: str) -> str:
         f'<span class="item">{esc(p["품목"])}</span>',
     ]
     항목.append(
-        f'<span class="move"><span class="movek">보통 수준 '
-        f'({esc(p.get("구분", ""))} {esc(p.get("등급", ""))})</span>'
+        f'<span class="move"><span class="movek">{자리(p.get("순위표기"))} '
+        f'({구분말(p.get("구분", ""))} {esc(p.get("등급", ""))})</span>'
         f'<span class="fig {방향}">{표기}</span></span></div>')
 
     # ── 왼쪽: 설명 + 큰 숫자 하나 ──
@@ -216,7 +235,7 @@ def 카드(p: dict, 순번: int, 전체: int, 대상월: str) -> str:
     if b:
         오른.append(
             '<div class="buy">'
-            f'<span class="k">같은 조건에서 가장 싼 도시 · {esc(b["조건"])}</span>'
+            f'<span class="k">양 극단 도시 가격 비교 · {esc(b["조건"])}</span>'
             f'<span class="row"><b>{esc(b["싼곳"]["지역"])}</b>'
             f'<span class="fig">{b["싼곳"]["값"]:,}원</span></span>'
             f'<span class="row dim">{esc(b["비싼곳"]["지역"])}'
@@ -250,8 +269,8 @@ def 고른범위(보고서: dict) -> str:
     """
     검증 = 보고서.get("검증", {})
     return (f"판정된 <b>{검증.get('판정품목', '?')}종</b> 중 "
-            f"<b>최고가인 도시가 있는 {len(보고서.get('우선검토', []))}종</b>을 "
-            f"올립니다 — 몇 종이 될지는 자르지 않고 자료가 정합니다")
+            f"<b>{len(보고서.get('우선검토', []))}종</b>을 올립니다 — "
+            f"몇 종이 될지는 자르지 않고 자료가 정합니다")
 
 
 def 판정제외(보고서: dict) -> str:
@@ -272,8 +291,7 @@ def 판정제외(보고서: dict) -> str:
     if 없음:
         문장.append(f"올해 같은 달 관측이 아직 없는 구간 {없음:,}개도 뺐습니다.")
     문장.append(f"<b>이 관측 수({최소}개) 하나가 저희가 고른 값의 전부입니다.</b> "
-               f"몇 종을 보여줄지도 자르지 않고 자료가 정합니다. "
-               f"가격의 높낮이를 가르는 선은 쓰지 않습니다.")
+               f"몇 종을 올릴지는 자르지 않고 자료가 정합니다.")
     return " ".join(문장)
 
 
@@ -283,12 +301,11 @@ def 근거표(보고서: dict) -> str:
     제외 = 검증.get("제외구간") or {}
     줄 = [
         ("데이터", "공공데이터포털 — 산지공판장 · 도매시장 정산 · 도소매 가격"),
-        ("기준가", f"같은 품목·같은 지역·같은 등급의 과거 "
+        ("평년 기준가", f"같은 품목·같은 지역·같은 등급의 과거 "
                  f"{보고서.get('설정', {}).get('기준가', {}).get('기준연수', '?')}년 같은 달"),
-        ("판정", "올해 값이 그 관측들 사이에서 몇 번째인지. "
-               "가격 높낮이를 가르는 임계치는 쓰지 않음"),
+        ("판정", "올해 값이 평년에서 몇 번째인지"),
         ("우리가 고른 값", f"최소 관측 수 {검증.get('최소관측수', '?')}개 — "
-                     f"이것 하나뿐. 표시 품목 수는 고르지 않고 자료가 정함"),
+                     f"이것 하나뿐 (표시 {검증.get('표시품목', '?')}종은 자르지 않은 결과)"),
         ("판정 제외", f"관측 부족 {제외.get('과거관측부족', 0):,}구간 · "
                   f"올해 관측 없음 {제외.get('올해관측없음', 0):,}구간"),
         ("수집", f"{수집.get('건수', {})} · 호출 {수집.get('호출수', '?')}회"),
@@ -296,7 +313,7 @@ def 근거표(보고서: dict) -> str:
     if 검증.get("경고"):
         줄.append(("확인된 결손", " / ".join(검증["경고"][:3])))
     if 수집.get("실패"):
-        줄.append(("수집 실패", f"{len(수집['실패'])}건 — 기록하고 계속 진행"))
+        줄.append(("수집 실패", f"{len(수집['실패'])}건"))
     return "".join(f"<tr><td>{esc(k)}</td><td>{esc(v)}</td></tr>" for k, v in 줄)
 
 
@@ -335,8 +352,8 @@ def html으로(보고서: dict) -> str:
               f'<button class="nav nav-m next" data-step="1" '
               f'aria-label="다음 품목">→</button></div>')
     else:
-        본문 = ('<div class="quiet">평소와 다르게 움직인 품목이 없습니다.<br>'
-              '오늘은 따로 보실 것이 없습니다.</div>')
+        본문 = ('<div class="quiet">평년과 크게 다른 품목이 없습니다.<br>'
+              '오늘은 따로 확인하실 품목이 없습니다.</div>')
     숫자, 색 = 머리숫자(판정들)
     토큰 = (TEMPLATE.parent / "tokens.css").read_text(encoding="utf-8")
     자형 = (TEMPLATE.parent / "fonts.css").read_text(encoding="utf-8")
