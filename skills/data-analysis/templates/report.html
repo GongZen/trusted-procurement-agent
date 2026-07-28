@@ -175,10 +175,11 @@
   .chart { margin: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
   .chart figcaption { display: flex; align-items: baseline; flex-wrap: wrap;
                       gap: var(--space-2xs) var(--space-sm); }
-  .chart figcaption .seg { font-size: var(--text-sm); color: var(--color-ink-2); }
-  .chart figcaption .cap { font-family: var(--font-mono); font-size: var(--text-xs);
-                           letter-spacing: .08em; color: var(--color-ink-2);
-                           text-transform: uppercase; }
+  /* 🔴 두 조각이 자형이 달라 한 줄이 두 목소리로 읽혔다. 왼쪽에 맞춘다. */
+  .chart figcaption .cap,
+  .chart figcaption .seg { font-family: var(--font-mono); font-size: var(--text-xs);
+                           letter-spacing: .06em; color: var(--color-ink-2); }
+  .chart figcaption .seg { color: var(--color-ink-3); }
   /* 🔴 순위 막대 — 값을 큰 순서로 늘어놓는다.
      꺾은선은 「이렇게 흘러왔다」는 추세로 읽히는데 우리는 추세를 주장하지
      않는다. 우리가 말하는 것은 「6년 중 몇 번째」 하나뿐이므로 그림도
@@ -236,13 +237,15 @@
   .entry-head .item { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em;
                       letter-spacing: -0.035em; line-height: 1.1; }
   .entry-head .move { margin-left: auto; display: flex; flex-direction: column;
-                      align-items: flex-end; gap: var(--space-2xs);
+                      align-items: flex-end; gap: var(--space-xs);
                       line-height: 1.25; }
   .entry-head .movek { font-size: var(--text-xs); color: var(--color-ink-3); }
-  .entry-head .move .fig { font-size: var(--text-xl); font-weight: 600;
-                           color: var(--color-ink-0); }
-  .entry-head .move .fig.up   { color: var(--color-up); }
-  .entry-head .move .fig.down { color: var(--color-down); }
+  /* 🔴 이 자리는 「방향」이 아니라 「순위」다. 증감 색을 쓰면 오름/내림
+     신호로 읽힌다. 색을 빼고 굵기만 준다. 자형도 품목명과 같게 —
+     mono 는 한글이 없어 자형이 섞인다. */
+  .entry-head .move .fig { font-family: var(--font-body);
+                           font-size: var(--text-lg); font-weight: 700;
+                           letter-spacing: -0.02em; color: var(--color-ink-0); }
   .badge { font-family: var(--font-mono); font-size: var(--text-xs);
            letter-spacing: 0.06em; color: var(--color-warning);
            border: 1px solid currentColor; border-radius: var(--radius-pill);
