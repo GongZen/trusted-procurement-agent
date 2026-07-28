@@ -20,24 +20,26 @@ from api import use_utf8_stdout                                    # noqa: E402
 import analyze                                                     # noqa: E402
 import render                                                      # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-DATA = ROOT / "sample-data"
-OUT = ROOT / "output"
+import paths                                                        # noqa: E402
+
+ROOT = paths.SKILL
+DATA = paths.SAMPLE
+OUT = paths.OUTPUT
 
 
 def 읽기(이름: str) -> list[dict]:
     """`.json` 과 `.json.gz` 를 모두 읽는다. 심사자가 어느 쪽을 받든 돌아간다."""
-    gz, plain = DATA / f"{이름}.json.gz", DATA / f"{이름}.json"
-    if gz.exists():
-        with gzip.open(gz, "rt", encoding="utf-8") as fp:
+    경로 = paths.어디에(이름)
+    if not 경로.exists():
+        raise SystemExit(f"수집본이 없습니다: {경로} — 먼저 collect.py 를 실행하세요.")
+    if 경로.suffix == ".gz":
+        with gzip.open(경로, "rt", encoding="utf-8") as fp:
             return json.load(fp)
-    if plain.exists():
-        return json.loads(plain.read_text(encoding="utf-8"))
-    raise SystemExit(f"수집본이 없습니다: {plain} — 먼저 collect.py 를 실행하세요.")
+    return json.loads(경로.read_text(encoding="utf-8"))
 
 
 def 대응표() -> dict[str, dict]:
-    path = ROOT / "reference" / "item_map.csv"
+    path = paths.REFERENCE / "item_map.csv"
     return {r["품목명"]: r for r in
             csv.DictReader(path.open(encoding="utf-8-sig"))}
 
@@ -257,9 +259,11 @@ def 판정하기(설정: dict, 기준일: str, 소매행: list[dict],
 
 def main() -> None:
     use_utf8_stdout()
-    설정 = json.loads((ROOT / "config" / "settings.json").read_text(encoding="utf-8"))
+    paths.준비()
+    설정 = json.loads((paths.CONFIG / "settings.json").read_text(encoding="utf-8"))
 
-    수집기록 = json.loads((DATA / "collect_report.json").read_text(encoding="utf-8"))
+    보고경로 = paths.어디에("collect_report")
+    수집기록 = json.loads(보고경로.read_text(encoding="utf-8"))
     기준일 = 수집기록.get("기준일", "")
     print(f"기준일 {기준일} · 수집본을 읽습니다")
 

@@ -21,9 +21,11 @@ from datetime import datetime, timedelta
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from api import Client, use_utf8_stdout  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-CONFIG = ROOT / "config" / "settings.json"
-OUT = ROOT / "sample-data"
+import paths                                                        # noqa: E402
+
+ROOT = paths.SKILL
+CONFIG = paths.CONFIG / "settings.json"
+OUT = paths.SAMPLE
 
 
 # ── 대응표 ───────────────────────────────────────────────────────────
@@ -34,7 +36,7 @@ def 대응표읽기() -> list[dict]:
     사람이 **뒤집는** 자리이며, `X` 가 적힌 행은 근거와 무관하게 제외한다.
     자동 매칭을 믿지 않는다는 규칙(DATA_CRITERIA §5)의 구현이다.
     """
-    path = ROOT / "reference" / "item_map.csv"
+    path = paths.REFERENCE / "item_map.csv"
     쓸것, 뺀것 = [], []
     with path.open(encoding="utf-8-sig") as fp:
         for row in csv.DictReader(fp):
@@ -110,7 +112,7 @@ def 산지수집(client: Client, 상위: int, 날짜들: list[str],
     나머지 날짜를 받는다.
     """
     halls = list(csv.DictReader(
-        (ROOT / "reference" / "trial_halls.csv").open(encoding="utf-8-sig")))
+        (paths.REFERENCE / "trial_halls.csv").open(encoding="utf-8-sig")))
     rows: list[dict] = []
 
     # 1) 첫 날짜로 활성 공판장을 찾는다
@@ -148,7 +150,7 @@ def main() -> None:
     use_utf8_stdout()
     기준일 = sys.argv[1] if len(sys.argv) > 1 else datetime.now().strftime("%Y%m%d")
     설정 = json.loads(CONFIG.read_text(encoding="utf-8"))
-    OUT.mkdir(parents=True, exist_ok=True)
+    paths.준비()
 
     쓸것, 뺀것 = 대응표읽기()
     대상 = 설정["대상품목"]["목록"]

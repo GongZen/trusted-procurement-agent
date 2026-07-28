@@ -42,9 +42,11 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from api import Client, ApiKeyMissing, use_utf8_stdout   # noqa: E402
 import compare                                           # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-STATE = ROOT / "state" / "last_run.json"
-OUT = ROOT / "output"
+import paths                                                        # noqa: E402
+
+ROOT = paths.SKILL
+STATE = paths.STATE / "last_run.json"
+OUT = paths.OUTPUT
 KST = timezone(timedelta(hours=9))
 
 
@@ -123,7 +125,7 @@ def 파이프라인실행() -> tuple[bool, list[str]]:
     for 이름, 인자 in [("수집", ["collect.py"]), ("판정", ["run.py"])]:
         try:
             p = subprocess.run(
-                [sys.executable, str(ROOT / "scripts" / 인자[0])],
+                [sys.executable, str(paths.SKILL / "scripts" / 인자[0])],
                 capture_output=True, text=True, encoding="utf-8",
                 errors="replace", timeout=3600)
             if p.returncode != 0:

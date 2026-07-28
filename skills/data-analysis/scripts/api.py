@@ -11,16 +11,26 @@ from __future__ import annotations
 
 import os
 import sys
+import ssl
+import json
 import time
 import pathlib
 from dataclasses import dataclass, field
 from urllib.parse import quote
-
-import requests
+from urllib.request import urlopen, Request
+from urllib.error import HTTPError, URLError
 
 BASE = "https://apis.data.go.kr/B552845"
 MAX_ROWS = 1000          # numOfRows 상한. DATA_SOURCES.md §1
 KEY_FILE = ".datago-key"
+
+# 🔴 **표준 라이브러리만 쓴다.** 처음에는 `requests` 로 짰는데, 실행 환경에
+#    설치돼 있지 않았다(타임리 확인: Python 3.14.5 · openpyxl ⭕ · requests ❌).
+#
+#    `uv pip install requests` 한 줄이면 되지만 그렇게 하지 않는다 —
+#    심사자가 어느 환경에서 열든 **설치 단계 없이 돌아야** 하기 때문이다.
+#    우리가 하는 일은 GET 과 JSON 파싱뿐이라 `urllib` 로 충분하다.
+_SSL = ssl.create_default_context()
 
 
 class ApiKeyMissing(RuntimeError):
@@ -77,7 +87,6 @@ class Client:
         self.timeout = timeout
         self.retries = retries
         self.backoff = backoff
-        self.session = requests.Session()
         self.call_count = 0          # 일 트래픽 10,000 한도를 추적한다
 
     # ── 요청 URL 조립 ────────────────────────────────────────────
@@ -105,18 +114,22 @@ class Client:
         for attempt in range(1, self.retries + 1):
             try:
                 self.call_count += 1
-                resp = self.session.get(url, timeout=self.timeout)
-                if resp.status_code != 200:
-                    last_error = f"HTTP {resp.status_code}"
-                    # 승인 직후 403은 게이트웨이 반영 지연이다. 재시도로 풀린다.
-                    time.sleep(self.backoff * attempt)
-                    continue
-                body = resp.json()["response"]["body"]
+                req = Request(url, headers={"Accept": "application/json"})
+                with urlopen(req, timeout=self.timeout, context=_SSL) as resp:
+                    payload = json.loads(resp.read().decode("utf-8"))
+                body = payload["response"]["body"]
                 items = body.get("items", {}).get("item", []) or []
                 if isinstance(items, dict):
                     items = [items]
                 return CallResult(op, True, int(body.get("totalCount", 0)),
                                   items, attempts=attempt)
+            except HTTPError as exc:
+                # 승인 직후 403은 게이트웨이 반영 지연이다. 재시도로 풀린다.
+                last_error = f"HTTP {exc.code}"
+                time.sleep(self.backoff * attempt)
+            except (URLError, TimeoutError) as exc:
+                last_error = f"연결 실패: {exc}"
+                time.sleep(self.backoff * attempt)
             except Exception as exc:                       # noqa: BLE001
                 last_error = f"{type(exc).__name__}: {exc}"
                 time.sleep(self.backoff * attempt)

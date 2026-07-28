@@ -35,3 +35,4 @@ venv/
 .mafra-key
 secrets*
 credentials*
+dist/

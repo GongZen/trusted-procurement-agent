@@ -24,9 +24,11 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from api import use_utf8_stdout  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-TEMPLATE = ROOT / "templates" / "report.html"
-OUTDIR = ROOT / "output"
+import paths                                                        # noqa: E402
+
+ROOT = paths.SKILL
+TEMPLATE = paths.TEMPLATES / "report.html"
+OUTDIR = paths.OUTPUT
 
 단계순서 = ["산지", "도매", "소매"]
 

@@ -23,8 +23,10 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from api import Client, use_utf8_stdout  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-DATA = ROOT / "sample-data"
+import paths                                                        # noqa: E402
+
+ROOT = paths.SKILL
+DATA = paths.SAMPLE
 
 # 한 달에서 고를 표본일. 월초·중순·하순을 하나씩 — 특정 시기 편향을 피한다.
 표본일 = ["08", "15", "22"]

@@ -21,8 +21,10 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from api import use_utf8_stdout  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-REF = ROOT / "reference"
+import paths                                                        # noqa: E402
+
+ROOT = paths.SKILL
+REF = paths.REFERENCE
 
 # 시트명 → (출력 파일명, 한국어 헤더)
 #

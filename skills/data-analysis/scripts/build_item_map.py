@@ -27,8 +27,10 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from api import use_utf8_stdout  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT = ROOT / "reference" / "item_map.csv"
+import paths                                                        # noqa: E402
+
+ROOT = paths.SKILL
+OUT = paths.REFERENCE / "item_map.csv"
 
 # ── A그룹 — 이름이 그대로 대응되는 52종 (DATA_CRITERIA §4.1) ──────────
 A_EXACT = [
