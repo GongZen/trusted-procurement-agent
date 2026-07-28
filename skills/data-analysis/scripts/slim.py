@@ -61,12 +61,24 @@ def 쓰기(이름: str, rows: list[dict]) -> pathlib.Path:
 
 
 def 읽기(이름: str) -> list[dict]:
-    경로 = paths.어디에(이름)
-    if not 경로.exists():
-        return []
-    opener = gzip.open if 경로.suffix == ".gz" else open
-    with opener(경로, "rt", encoding="utf-8") as fp:
-        return json.load(fp)
+    """🔴 **원본만 읽는다.** `paths.어디에()` 를 쓰면 안 된다.
+
+    그 함수는 같은 위치에서 슬림본을 우선하므로, **슬림본이 자기 자신을
+    다시 슬림하게 된다.** 실제로 도매를 11곳으로 넓혀 37,340행을 받아
+    놓고도 슬림본은 옛 6,627행 그대로였다 — 변화가 없어 눈치채기 어렵다.
+
+    슬림본을 만드는 쪽은 반드시 **`_slim` 이 아닌 파일**을 재료로 쓴다.
+    """
+    for 확장 in (".json", ".json.gz"):
+        for base in (paths.SAMPLE, paths.SKILL / "sample-data"):
+            경로 = base / f"{이름}{확장}"
+            if 경로.exists():
+                opener = gzip.open if 경로.suffix == ".gz" else open
+                with opener(경로, "rt", encoding="utf-8") as fp:
+                    자료 = json.load(fp)
+                # 메타를 함께 담은 형태({"메타":…,"행":…})도 받는다
+                return 자료["행"] if isinstance(자료, dict) and "행" in 자료 else 자료
+    return []
 
 
 def 판정지문(경로: pathlib.Path) -> str:
