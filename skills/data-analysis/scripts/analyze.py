@@ -115,7 +115,7 @@ def 같은달_관측(월별행: list[dict], 대상월: str) -> dict[tuple, dict]
 
 
 def 품목별_집계(버킷: dict[tuple, dict], 올해: str,
-             최소관측수: int) -> dict[str, dict]:
+             최소관측수: int) -> tuple[dict[str, dict], dict]:
     """비교 단위별 순위를 **품목 하나로 모은다.**
 
     🔑 한 품목은 지역·품종·등급별로 수십 개의 비교 단위를 갖는다. 그중
@@ -125,15 +125,27 @@ def 품목별_집계(버킷: dict[tuple, dict], 올해: str,
 
     임계치를 고르지 않고도 「얼마나 이상한가」를 말할 수 있다. 한 지역만
     튀는 것과 전국이 함께 튀는 것이 자연히 갈린다.
+
+    🔴 **버린 구간을 세어 함께 돌려준다.** `최소관측수` 는 우리가 고른
+       수다. 고르지 않을 수는 없다 — 과거 관측이 2개뿐인데 순위를 매기면
+       「2년 중 1번째」가 되어 **말이 관측보다 커진다.** 그러나 말없이
+       버리면 그 자체가 숨긴 임계치다. 우리는 「임의 임계치를 쓰지
+       않는다」고 적어 두었으므로, 이 수만큼은 **몇 개를 왜 뺐는지**
+       산출물에 드러내야 그 말이 참이 된다.
     """
     집계: dict[str, dict] = {}
+    버림 = {"올해관측없음": 0, "과거관측부족": 0}
     for 키, 칸 in sorted(버킷.items(), key=lambda kv: tuple(
             "" if v is None else str(v) for v in kv[0])):
         관측 = 칸["관측"]
         품목 = 키[0]
         올해값 = [v for y, v in 관측 if y == 올해]
         과거값 = [v for y, v in 관측 if y != 올해]
-        if not 올해값 or len(과거값) < 최소관측수:
+        if not 올해값:
+            버림["올해관측없음"] += 1
+            continue
+        if len(과거값) < 최소관측수:
+            버림["과거관측부족"] += 1
             continue
         현재 = statistics.mean(올해값)
         순위, 전체, 배수 = 순위판정(현재, 과거값)
@@ -181,7 +193,7 @@ def 품목별_집계(버킷: dict[tuple, dict], 올해: str,
         d["중앙배수"] = round(statistics.median(d["배수들"]), 2)
         d["최고비율"] = round(d["최고순위구간"] / d["구간수"], 3)
         del d["배수들"]
-    return 집계
+    return 집계, 버림
 
 
 def 순위판정(올해값: float, 과거: list[float]) -> tuple[int, int, float]:
