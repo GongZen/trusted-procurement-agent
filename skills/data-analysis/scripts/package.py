@@ -30,7 +30,10 @@ NAME = "trusted-procurement-agent"
 포함 = ["SKILL.md", "AGENT.md", "README.md", "skill.md",
        "reference", "config", "scripts", "templates", "examples",
        "sample-data", "tests"]
-제외패턴 = re.compile(r"(__pycache__|\.pyc$|/state/|/output/|\.DS_Store)")
+# 🔴 `.PARTIAL.json` 과 `.tmp` 는 **절대 담지 않는다.** 반쪽 수집본이
+#    동봉 스냅샷 자리에 섞이면 심사자가 그것으로 판정하게 된다.
+제외패턴 = re.compile(
+    r"(__pycache__|\.pyc$|/state/|/output/|\.DS_Store|\.PARTIAL\.json$|\.tmp$)")
 
 # 🔴 이 표현이 파일에 있으면 담지 않고 멈춘다
 위험 = re.compile(r"(serviceKey=[A-Za-z0-9%]{20,}|DATAGO_KEY\s*=\s*['\"][^'\"]{20,})")

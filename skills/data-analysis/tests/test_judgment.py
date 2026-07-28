@@ -15,6 +15,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -22,6 +23,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import agent      # noqa: E402
 import analyze    # noqa: E402
+import collect    # noqa: E402
 import paths      # noqa: E402
 from api import CallResult, Client, use_utf8_stdout  # noqa: E402
 
@@ -122,6 +124,57 @@ def main() -> None:
     문장 = " ".join(p.get("해석", "") for p in 보고.get("우선검토", []))
     확인("거래처를 바꾸는 것으로는" not in 문장,
         "「거래처를 바꿔도 달라지지 않는다」를 단정하지 않는다")
+
+    # ── ⑥ 반쪽 수집이 온전한 파일을 덮지 않는다 ──────────────────────
+    print("\n⑥ 반쪽 수집이 온전한 수집본을 덮지 않는다")
+    with tempfile.TemporaryDirectory() as d:
+        원래OUT, collect.OUT = collect.OUT, pathlib.Path(d)
+        try:
+            기록 = {"실패": [], "경고": []}
+            본 = collect.OUT / "retail.json"
+            조각 = collect.OUT / "retail.PARTIAL.json"
+
+            collect.저장("retail", [{"a": i} for i in range(100)], True, 기록)
+            온전본 = 본.read_bytes()
+
+            collect.저장("retail", [{"a": i} for i in range(3)], False, 기록)
+            확인(본.read_bytes() == 온전본 and 조각.exists(),
+                "3행 반쪽이 100행 온전본을 덮지 않고 PARTIAL 로 빠진다")
+
+            collect.저장("retail", [], True, 기록)
+            확인(본.read_bytes() == 온전본,
+                "실패가 없어도 0행이면 덮지 않는다 — 조용한 실패와 구분이 안 된다")
+
+            collect.저장("retail", [{"a": i} for i in range(200)], True, 기록)
+            확인(len(json.loads(본.read_text(encoding="utf-8"))) == 200
+                and not 조각.exists(),
+                "온전한 수집은 갈아 끼우고 PARTIAL 을 치운다")
+
+            남김 = list(collect.OUT.glob("*.tmp"))
+            확인(not 남김, f"임시 파일이 남지 않는다 (원자 교체) — {len(남김)}개")
+        finally:
+            collect.OUT = 원래OUT
+
+    # ── ⑦ 스냅샷 지문이 수정시각이 아니라 내용을 본다 ────────────────
+    print("\n⑦ 스냅샷 지문이 수정시각이 아니라 내용을 본다")
+    with tempfile.TemporaryDirectory() as d:
+        p = pathlib.Path(d) / "x.json"
+        p.write_bytes("같은 내용".encode("utf-8"))
+        가 = agent.파일지문(p)
+        os.utime(p, (0, 0))                       # 수정시각만 바꾼다
+        나 = agent.파일지문(p)
+        p.write_bytes("다른 내용".encode())
+        다 = agent.파일지문(p)
+        확인(가 == 나 and 가 != 다,
+            "시각만 바뀌면 지문 유지, 내용이 바뀌면 달라진다")
+
+    전 = agent.스냅샷지문()
+    for 이름 in ("retail", "wholesale", "origin", "origin_history"):
+        경로 = paths.어디에(이름)
+        if 경로.exists():
+            os.utime(경로, None)                  # touch — 내용은 그대로
+    확인(전 != "" and 전 == agent.스냅샷지문(),
+        f"동봉 스냅샷을 touch 해도 지문이 그대로 — {전 or '파일 없음'}")
 
     실패 = [s for ok, s in 통과 if not ok]
     print("\n" + "=" * 58)

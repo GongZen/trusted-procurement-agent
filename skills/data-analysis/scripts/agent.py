@@ -106,19 +106,37 @@ def 지문만들기(행들: list[dict]) -> str:
     return hashlib.sha256("\n".join(핵심).encode("utf-8")).hexdigest()[:16]
 
 
+def 파일지문(경로: pathlib.Path) -> str:
+    """파일 **내용**으로 지문을 만든다. 큰 파일도 조각내어 읽는다."""
+    h = hashlib.sha256()
+    with 경로.open("rb") as fp:
+        for 덩어리 in iter(lambda: fp.read(1 << 20), b""):
+            h.update(덩어리)
+    return h.hexdigest()[:16]
+
+
 def 스냅샷지문() -> str:
     """인증키가 없을 때 쓰는 지문 — **동봉 스냅샷 파일의 내용**으로 만든다.
 
     🔴 심사자는 키 없이 돌린다. 그 경로에 지문이 없으면 매번 「새 자료 처리」가
        나와, **정작 심사 환경에서 「어제와 같으면 건너뛴다」가 안 보인다.**
        파일이 안 바뀌면 지문도 안 바뀌어야 한다.
+
+    🔴 **수정시각(mtime)으로는 안 된다.** 내용이 그대로여도 시각은 바뀐다 —
+
+        · 타임리는 `.pi/skills/` 를 **매 턴 지우고 다시 만든다.** 그러면
+          동봉 스냅샷의 mtime 이 매 턴 새것이 되고, 지문도 매 턴 달라진다.
+          **정작 플랫폼 위에서만 「변화 없음」이 영영 안 나온다.**
+        · zip 을 풀거나 git 으로 받아도 마찬가지다.
+        · 반대로 1초 안에 같은 크기로 바뀌면 **바뀐 것을 놓친다.**
+
+       그래서 바이트를 직접 읽어 해시한다. 동봉본은 4MB대라 10ms 안쪽이다.
     """
     조각 = []
     for 이름 in ("retail", "wholesale", "origin", "origin_history"):
         경로 = paths.어디에(이름)
         if 경로.exists():
-            st = 경로.stat()
-            조각.append(f"{경로.name}|{st.st_size}|{int(st.st_mtime)}")
+            조각.append(f"{경로.name}|{파일지문(경로)}")
     if not 조각:
         return ""
     return hashlib.sha256("\n".join(sorted(조각)).encode("utf-8")).hexdigest()[:16]

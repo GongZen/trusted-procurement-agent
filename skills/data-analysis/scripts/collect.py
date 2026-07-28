@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sys
 import pathlib
 from datetime import datetime, timedelta
@@ -165,6 +166,80 @@ def 산지수집(client: Client, 상위: int, 날짜들: list[str],
     return rows
 
 
+# ── 저장 ─────────────────────────────────────────────────────────────
+def 원자쓰기(경로: pathlib.Path, rows: list[dict]) -> None:
+    """🔴 **임시 파일에 다 쓴 뒤 바꿔치기한다.**
+
+    `write_text` 는 대상 파일을 **먼저 비우고** 쓴다. 25MB 를 쓰는 중간에
+    프로세스가 끊기면 원본도 새 자료도 아닌 반쪽 파일이 남고, 그것을 읽는
+    쪽은 그냥 JSON 오류를 낸다 — 어제 것으로 돌아갈 방법이 없다.
+
+    같은 폴더에 임시 파일을 만든 뒤 `os.replace` 로 갈아 끼우면, 어느
+    시점에 끊겨도 **옛 파일 아니면 새 파일**이지 그 사이는 없다.
+    """
+    경로.parent.mkdir(parents=True, exist_ok=True)
+    임시 = 경로.with_name(경로.name + ".tmp")
+    임시.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
+    os.replace(임시, 경로)          # 같은 볼륨이므로 원자적이다
+
+
+def 저장(이름: str, rows: list[dict], 온전: bool, 기록: dict) -> None:
+    """🔴 **온전하지 않은 수집이 온전한 파일을 덮게 두지 않는다.**
+
+    전에는 「실패가 있고 **받은 행이 하나도 없을 때만**」 기존 파일을
+    지켰다. 그래서 61종 중 3종만 실패하고 나머지가 들어오면, 실패가
+    기록된 채로 **반쪽 자료가 온전한 파일을 덮었다.** 행 수가 줄어도
+    오류가 나지 않아 다음 판정이 조용히 바뀐다.
+
+    판단 기준을 「행이 있느냐」에서 **「이 단계가 온전했느냐」**로 바꾼다.
+
+        온전                 → 갈아 끼운다
+        반쪽 + 기존 파일 있음 → **기존을 지키고**, 받은 것은 PARTIAL 로 따로
+        반쪽 + 기존 파일 없음 → 없는 것보다 나으므로 쓰되, 실패로 기록해
+                               다음 주기가 다시 받게 한다
+
+    🔴 **0행은 온전으로 치지 않는다.** 조용한 실패와 구분이 안 되는데,
+       빈 배열로 덮으면 그동안 모은 것이 통째로 사라진다.
+    """
+    본 = OUT / f"{이름}.json"
+    조각 = OUT / f"{이름}.PARTIAL.json"
+
+    if 온전 and rows:
+        원자쓰기(본, rows)
+        if 조각.exists():
+            조각.unlink()                     # 온전한 것이 왔으니 반쪽은 치운다
+        return
+
+    if not rows:
+        기록["경고"].append(
+            f"{이름}: 받은 행이 0이라 기존 파일을 그대로 둡니다")
+        return
+
+    if 본.exists():
+        원자쓰기(조각, rows)
+        기록["경고"].append(
+            f"{이름}: 수집이 온전하지 않아 기존 파일을 유지합니다 "
+            f"(받은 {len(rows):,}행은 {조각.name} 에 따로 뒀습니다)")
+        return
+
+    원자쓰기(본, rows)
+    기록["경고"].append(
+        f"{이름}: 기존 파일이 없어 반쪽 수집본({len(rows):,}행)을 씁니다 "
+        f"— 다음 주기에 다시 받습니다")
+
+
+def 단계(이름: str, 기록: dict, 함수, *인자) -> tuple[list[dict], bool]:
+    """한 단계를 돌리고 **그 단계에서 실패가 났는지**를 함께 돌려준다.
+
+    🔴 실패 목록은 하나인데 세 단계가 같이 쓴다. 그것을 통째로 보면
+       소매 한 종이 실패했다는 이유로 **멀쩡한 도매 수집까지 버려진다.**
+       그래서 단계별로 앞뒤를 재어 자기 실패만 본다.
+    """
+    전 = len(기록["실패"])
+    rows = 함수(*인자)
+    return rows, len(기록["실패"]) == 전
+
+
 # ── 실행 ─────────────────────────────────────────────────────────────
 def main() -> None:
     use_utf8_stdout()
@@ -186,28 +261,39 @@ def main() -> None:
     한도 = 설정["수집"]["일_트래픽_상한"]
 
     print("\n[1/3] 소매·중도매")
-    소매 = 소매수집(client, 품목들, 기준일, 설정["기준가"]["기준연수"], 기록)
+    소매, 소매온전 = 단계("retail", 기록, 소매수집,
+                      client, 품목들, 기준일, 설정["기준가"]["기준연수"], 기록)
+
+    날짜들 = 최근조사일(기준일, 3)
 
     print("\n[2/3] 도매시장")
-    날짜들 = 최근조사일(기준일, 3)
-    도매 = 도매수집(client, 설정["수집"]["도매시장"], 날짜들, 기록) \
-        if client.call_count < 한도 else []
+    if client.call_count < 한도:
+        도매, 도매온전 = 단계("wholesale", 기록, 도매수집,
+                          client, 설정["수집"]["도매시장"], 날짜들, 기록)
+    else:
+        # 🔴 상한에 걸려 건너뛴 것은 **성공이 아니다.** 예전에는 그냥 빈
+        #    배열이 돼서, 온전한 파일을 `[]` 로 덮을 수 있었다.
+        도매, 도매온전 = [], False
+        기록["실패"].append(f"도매: 일 트래픽 상한 {한도}회 도달 — 건너뜁니다")
 
     print("\n[3/3] 산지공판장")
-    산지 = 산지수집(client, 설정["수집"]["산지공판장_상위"], 날짜들, 기록) \
-        if client.call_count < 한도 else []
+    if client.call_count < 한도:
+        산지, 산지온전 = 단계("origin", 기록, 산지수집,
+                          client, 설정["수집"]["산지공판장_상위"], 날짜들, 기록)
+    else:
+        산지, 산지온전 = [], False
+        기록["실패"].append(f"산지: 일 트래픽 상한 {한도}회 도달 — 건너뜁니다")
 
-    # 🔴 **온전하지 않으면 기존 파일을 덮어쓰지 않는다.**
-    #    반쪽 자료로 덮으면 다음 판정이 조용히 틀어지고, 원본은 사라진다.
-    for 이름, rows in [("retail", 소매), ("wholesale", 도매), ("origin", 산지)]:
-        if 기록["실패"] and not rows:
-            기록["경고"].append(f"{이름}: 수집 실패 — 기존 파일을 유지합니다")
-            continue
-        (OUT / f"{이름}.json").write_text(
-            json.dumps(rows, ensure_ascii=False), encoding="utf-8")
+    for 이름, rows, 온전 in [("retail", 소매, 소매온전),
+                           ("wholesale", 도매, 도매온전),
+                           ("origin", 산지, 산지온전)]:
+        저장(이름, rows, 온전, 기록)
 
     기록.update({"호출수": client.call_count, "트래픽상한": 한도,
-               "건수": {"소매": len(소매), "도매": len(도매), "산지": len(산지)}})
+               "건수": {"소매": len(소매), "도매": len(도매), "산지": len(산지)},
+               # 🔴 어느 단계가 온전했는지 남긴다 — 나중에 「그날 자료를
+               #    믿어도 되는가」를 되짚을 수 있어야 한다
+               "온전": {"소매": 소매온전, "도매": 도매온전, "산지": 산지온전}})
     (OUT / "collect_report.json").write_text(
         json.dumps(기록, ensure_ascii=False, indent=2), encoding="utf-8")
 
