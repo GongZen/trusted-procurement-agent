@@ -1,0 +1,98 @@
+/* Hallmark · tokens · theme: Pastel(차용) · genre: modern-minimal
+ * paper-band: light · display-style: system-sans + Geist Mono figures
+ * accent-hue: cool-indigo 268° · semantic: 상승 27° / 하락 268°
+ *
+ * 🔴 **라이트 전용으로 확정한다.** 다크 모드를 함께 만들었더니 뷰어 테마에서
+ *    중요한 글자가 배경에 묻혔다. 이 산출물은 매일 아침 3초 안에 읽는
+ *    업무 문서라 가시성이 취향보다 우선한다. 그래서 뷰어가 다크를 요청해도
+ *    라이트를 유지한다 — 누락이 아니라 결정이다.
+ *
+ * 종이·잉크·액센트 값은 usehallmark.com/examples/tally 의 토큰을 그대로 쓴다.
+ * 258° 축 위에 4단 종이 + 4단 잉크, 268° 인디고 액센트.
+ */
+:root, :root[data-theme="dark"], :root[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── Tally 토큰 그대로 ── */
+  --color-paper-0: oklch(98.4% 0.005 258);
+  --color-paper-1: oklch(96.2% 0.010 258);
+  --color-paper-2: oklch(93.0% 0.015 258);
+  --color-paper-3: oklch(89.0% 0.020 258);
+  --color-ink-0:   oklch(18.0% 0.030 258);
+  --color-ink-1:   oklch(35.0% 0.025 258);
+  --color-ink-2:   oklch(52.0% 0.018 258);
+  --color-ink-3:   oklch(70.0% 0.012 258);
+
+  --color-accent:      oklch(54.0% 0.220 268);
+  --color-accent-soft: oklch(72.0% 0.140 268);
+  --color-accent-tint: oklch(94.0% 0.040 268);
+  --color-companion:   oklch(82.0% 0.180 130);
+  --color-warning:     oklch(74.0% 0.180 50);
+  --color-success:     oklch(68.0% 0.150 145);
+  --color-focus:       oklch(46.0% 0.220 268);
+
+  /* ── 🔴 증감의 적·청 배색을 걷어냈다.
+       색이 많아지자 「무엇이 중요한가」가 아니라 「무슨 색인가」를 먼저
+       읽게 됐다. 방향은 부호(+/−)가 이미 말한다. 그래서 판정 3색을
+       전부 배경과 같은 연두 계열로 눕히고, 위계는 굵기·자리로만 만든다.
+       나중에 필요해지면 이 한 곳만 되돌리면 된다 ── */
+  /* 면은 전부 흰 톤이다. 연두는 **그래프 아래 그라데이션 한 곳**에만 남긴다 —
+     색이 한 군데만 있으면 그 한 군데가 곧 시선의 목적지가 된다 */
+  --color-leaf:      var(--color-card);
+  --color-leaf-2:    var(--color-paper-1);
+  --color-leaf-line: color-mix(in oklch, var(--color-ink-0) 11%, transparent);
+  --color-card:      oklch(100% 0 0);
+  --color-up:        oklch(30.0% 0.020 258);
+  --color-up-soft:   var(--color-paper-1);
+  --color-down:      oklch(50.0% 0.016 258);
+  --color-down-soft: var(--color-card);
+  --color-flat:      oklch(52.0% 0.018 258);
+
+  /* 🔴 한글은 OS 기본 산세로 통일한다.
+   *
+   *    이전 스택 맨 앞에 Pretendard 를 뒀는데 그것은 시스템 폰트가 아니다.
+   *    설치된 기기에서만 적용되므로 심사자 화면과 내 화면이 달라진다.
+   *    깨지지는 않지만 **같게 나온다는 보장이 없다.**
+   *
+   *    그래서 각 OS 의 기본 산세만 남기고 마지막을 generic `sans-serif` 로 닫는다.
+   *    Windows 맑은 고딕 · macOS 애플 SD 산돌고딕 · Linux Noto Sans KR.
+   *    자형은 조금씩 다르지만 **어느 환경에서도 산세로 렌더링된다.**
+   *
+   *    숫자만 Geist Mono 를 본문에 심어 어디서나 똑같이 나오게 했다 —
+   *    이 산출물에서 환경에 따라 달라지면 안 되는 것은 숫자다.
+   */
+  --font-body: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR",
+               system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Consolas, monospace;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-md:   1.0625rem;
+  --text-lg:   1.25rem;
+  --text-xl:   1.625rem;
+  --text-2xl:  2.25rem;
+  --text-hero: clamp(3.25rem, 12vw, 5.5rem);
+
+  --space-2xs: 0.25rem; --space-xs: 0.5rem;  --space-sm: 0.75rem;
+  --space-md:  1rem;    --space-lg: 1.5rem;  --space-xl: 2rem;
+  --space-2xl: 3rem;    --space-3xl: 4.5rem;
+
+  /* 각진 형태로 간다 — 표는 모서리를 굴리지 않는다 */
+  --radius-sm: 0;   --radius-md: 0;
+  --radius-lg: 0;   --radius-pill: 999px;
+
+  --rule-hair: 1px solid color-mix(in oklch, var(--color-ink-0) 8%, transparent);
+  --rule-soft: 1px solid color-mix(in oklch, var(--color-ink-0) 14%, transparent);
+  --rule-firm: 1px solid color-mix(in oklch, var(--color-ink-0) 28%, transparent);
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+                 0 10px 30px -18px rgba(20, 30, 80, 0.22);
+  --shadow-pill: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+                 0 8px 30px -12px rgba(20, 30, 80, 0.18);
+
+  --ease-out:    cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-mid:  240ms;
+}

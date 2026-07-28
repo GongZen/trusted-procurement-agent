@@ -102,6 +102,60 @@ def 산지판정(당일: float | None, 연도별: dict[str, float],
 
 
 # ── 판정 ─────────────────────────────────────────────────────────────
+def 시계열뽑기(소매행: list[dict], 대표: dict, 품목: str) -> list[dict]:
+    """대표 구간의 **월별 가격을 시간 순서대로** 뽑는다.
+
+    카드의 한 문장이 「지금 어디쯤인가」를 말한다면, 이 선은 「어떤 길로
+    여기 왔는가」를 보여준다. 문장으로는 대체할 수 없는 정보다.
+    같은 비교 단위(구분·품종·등급·지역)로 고정해야 선이 튀지 않는다.
+    """
+    # 🔴 그래프는 **카드가 지목한 바로 그 구간**을 그려야 한다.
+    #
+    #    처음에는 중앙값 구간을 그렸는데, 문장은 최고가 구간을 말하고 있어서
+    #    사과 카드가 「가장 비싸다」고 하면서 내려가는 선을 보여줬다.
+    #    둘 다 실측이었지만 **서로 다른 구간이라 반대 방향을 가리켰다.**
+    #    한 카드 안에서 문장과 그림이 다른 것을 가리키면 둘 다 못 믿게 된다.
+    점: dict[str, float] = {}
+    for 행 in 소매행:
+        if (행.get("item_nm") != 품목
+                or 행.get("se_nm") != 대표["구분"]
+                or 행.get("vrty_nm") != 대표["품종"]
+                or 행.get("grd_nm") != 대표["등급"]
+                or 행.get("sgg_nm") != 대표["지역"]):
+            continue
+        try:
+            값 = float(행.get("pmm_avgprc") or 0)
+        except (TypeError, ValueError):
+            continue
+        if 값 > 0:
+            점[행.get("exmn_ym", "")] = 값
+    return [{"ym": ym, "값": round(v)} for ym, v in sorted(점.items()) if ym]
+
+
+def 중앙시계열(소매행: list[dict], 기준: dict, 품목: str) -> list[dict]:
+    """같은 품종·등급·판매형태의 **전 도시 중앙값**을 연월별로 낸다.
+
+    한 구간만 그리면 그 선이 높은 것인지 낮은 것인지 알 수 없다.
+    전국선을 같이 그려야 「이 구간이 유별난가」가 눈으로 판정된다.
+    """
+    모음: dict[str, list[float]] = {}
+    for 행 in 소매행:
+        if (행.get("item_nm") != 품목
+                or 행.get("se_nm") != 기준["구분"]
+                or 행.get("vrty_nm") != 기준["품종"]
+                or 행.get("grd_nm") != 기준["등급"]
+                or 행.get("sgg_nm") == "온라인"):
+            continue
+        try:
+            값 = float(행.get("pmm_avgprc") or 0)
+        except (TypeError, ValueError):
+            continue
+        if 값 > 0:
+            모음.setdefault(행.get("exmn_ym", ""), []).append(값)
+    return [{"ym": ym, "값": round(statistics.median(vs))}
+            for ym, vs in sorted(모음.items()) if ym and vs]
+
+
 def 판정하기(설정: dict, 기준일: str, 소매행: list[dict],
           도매행: list[dict], 산지행: list[dict], 산지과거: list[dict],
           지도: dict[str, dict]) -> tuple[list, dict]:
@@ -143,6 +197,11 @@ def 판정하기(설정: dict, 기준일: str, 소매행: list[dict],
             else:
                 단계.append(analyze.단계판정(이름, None, None, None, None, "자료없음"))
 
+        # 그래프가 그릴 구간을 먼저 정한다 — 문장·블록·그림이 같은 것을 가리켜야 한다
+        최고 = analyze.최고지점(d)
+        그릴구간 = (max(d["최고목록"], key=lambda x: x["배수"])
+                if d.get("최고목록") else 대표)
+
         확인 = ["이번 주 발주 예정 물량이 있는지 확인해 보세요."]
         높은단계 = [s.단계 for s in 단계 if s.관측 == "높음"]
         if 높은단계:
@@ -166,6 +225,12 @@ def 판정하기(설정: dict, 기준일: str, 소매행: list[dict],
             올해=대표["올해"], 평년평균=대표["평년평균"], 배수=대표["배수"],
             순위표기=대표["순위"],
             사람말=analyze.사람말로(d, 대상월, 기준연수),
+            시계열=시계열뽑기(소매행, 그릴구간, 품목),
+            전국선=중앙시계열(소매행, 그릴구간, 품목),
+            도시=analyze.도시비교(d, 그릴구간),
+            그린구간=f"{그릴구간['지역']} {그릴구간['품종']} {그릴구간['등급']}"
+                    f" · {그릴구간['구분']}",
+            최고=최고,
             단계추적=단계,
             해석=analyze.단계해석(단계),
             확인사항=확인, 모르는것=모름,
