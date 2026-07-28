@@ -7,7 +7,7 @@
     말하는 대신 스크립트가 브리핑을 만들어 지시문 앞에 붙인다.
 #>
 
-$script:RepoSlug = 'GongZen/trusted-profit-agent'
+$script:RepoSlug = 'GongZen/trusted-procurement-agent'
 
 function Get-RepoSlug { $script:RepoSlug }
 
@@ -95,15 +95,15 @@ function Get-RepoBriefing {
     $lines.Add('')
 
     $lines.Add('## 문서 지도 — 판단 전에 관련 문서를 직접 읽는다')
-    $lines.Add('- `README.md` — 문제 정의(조달 의사결정 지원), 답하지 않는 것, 스스로 깬 전제')
+    $lines.Add('- `COLLABORATION.md` 0절 — **진행 상황. 새 세션은 여기부터 읽는다**')
+    $lines.Add('- `README.md` — 문제 정의(식자재 조달 점검 우선순위), 답하지 않는 것')
     $lines.Add('- `DATA_CRITERIA.md` — 데이터 선정 조건과 실측 판정. **데이터 관련 판단은 여기가 기준이다**')
     $lines.Add('- `Scaffolding.md` — 진행 단계와 잠가야 할 결정 영역. **결정 관련 판단은 여기가 기준이다**')
     $lines.Add('- `DECISIONS.md` — 이미 내려진 결정과 폐기된 결정의 경계. 번복하려면 근거가 필요하다')
     $lines.Add('- `DATA_SOURCES.md` — API 엔드포인트·파라미터·재현 절차')
     $lines.Add('- `_local/Skillthon.md` — 대회 요건. 배점·심사 방식·제출물 (로컬 전용)')
-    $lines.Add('- `COLLABORATION.md` — 협업 절차와 검토 기준')
     $lines.Add('')
-    $lines.Add('> 주제가 전환됐다: 수익성 진단 + 완결 데이터셋 2종 -> 조달 의사결정 지원 + 공공데이터 API 4종.')
+    $lines.Add('> 현재 정의: 식자재 조달 점검 우선순위를 정하는 Agent. 데이터는 공공데이터포털 API 13종.')
     $lines.Add('> `PROJECT_BRIEF.md`와 `analysis/measure_premises.py`는 삭제됐다. 링크가 보이면 오래된 참조다.')
     $lines.Add('')
 
@@ -126,33 +126,50 @@ function Invoke-Agent {
     # 첫 줄에서 중단되므로 이 구간만 Continue로 되돌린다.
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
+    # 🔴 프롬프트는 명령행 인자로 넘기지 않고 stdin으로 넘긴다.
+    #
+    # 왜 — 인자로 넘기면 PowerShell → npm 셔임(.ps1) → node 를 거치며 문자열이
+    # 재파싱된다. 검토 라운드가 쌓여 프롬프트에 이전 검토 본문(따옴표·백틱·
+    # 줄바꿈 포함)이 들어가자 인자가 쪼개져 죽었다:
+    #     node.exe : error: unexpected argument '분석은' found
+    # stdin 은 셸 파싱을 거치지 않으므로 길이·따옴표와 무관하게 안전하다.
+    $promptFile = [System.IO.Path]::GetTempFileName()
+    # BOM 없는 UTF-8 이어야 에이전트가 첫 글자를 깨뜨리지 않는다.
+    [System.IO.File]::WriteAllText(
+        $promptFile, $Prompt, (New-Object System.Text.UTF8Encoding($false)))
+
     Push-Location $RepoRoot
     try {
         if ($Agent -eq 'codex') {
             # inherit=all — Codex가 실행하는 gh 명령에도 GH_TOKEN이 전달되어야
             # 검토자 계정으로 리뷰가 남는다.
+            # PROMPT 자리에 '-' 를 주면 stdin 에서 읽는다.
             $a = @(
                 'exec',
                 '-s', 'danger-full-access',
                 '-c', 'shell_environment_policy.inherit=all',
                 '-C', $RepoRoot,
-                $Prompt
+                '-'
             )
-            & codex @a 2>&1 | Tee-Object -FilePath $LogFile
+            Get-Content -LiteralPath $promptFile -Raw -Encoding utf8 |
+                & codex @a 2>&1 | Tee-Object -FilePath $LogFile
         }
         else {
+            # claude 는 -p 값을 생략하면 stdin 을 프롬프트로 읽는다.
             $a = @(
-                '-p', $Prompt,
+                '-p',
                 '--permission-mode', 'acceptEdits',
                 '--allowedTools', 'Bash Read Grep Glob Edit Write'
             )
-            & claude @a 2>&1 | Tee-Object -FilePath $LogFile
+            Get-Content -LiteralPath $promptFile -Raw -Encoding utf8 |
+                & claude @a 2>&1 | Tee-Object -FilePath $LogFile
         }
     }
     finally {
         Pop-Location
         $ErrorActionPreference = $prevEAP
         if ($Token) { Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue }
+        Remove-Item -LiteralPath $promptFile -ErrorAction SilentlyContinue
     }
 }
 
