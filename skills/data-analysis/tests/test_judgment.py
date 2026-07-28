@@ -192,7 +192,7 @@ def main() -> None:
     화면 = (paths.OUTPUT / "report.html").read_text(encoding="utf-8")
     확인("판정하지 않은 것" in 화면
         and f"{검증.get('최소관측수')}개 미만" in 화면
-        and "한 단계라도 올해가 평년에서" in 화면,
+        and "한 단계라도 평년보다 높은" in 화면,
         "화면 가이드가 제외 기준과 고르는 기준을 밝힌다")
 
     # 🔴 화면 가이드에서는 분모를 뺐다(사용자 결정). 텍스트 산출물이
