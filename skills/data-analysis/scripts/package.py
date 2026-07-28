@@ -54,6 +54,34 @@ def 담을파일들() -> list[pathlib.Path]:
     return sorted(set(파일))
 
 
+def 원본거르기(파일들: list[pathlib.Path]) -> tuple[list[pathlib.Path],
+                                                list[pathlib.Path]]:
+    """🔴 **슬림본이 있는 원본은 담지 않는다.**
+
+    zip 은 4.7MB 인데 **풀면 53MB** 였고, 그중 50.5MB 가 `retail.json` 과
+    `wholesale.json` 원본이었다. 그런데 이 둘은 **런타임에 한 번도 읽히지
+    않는다** — `paths.어디에()` 가 같은 위치의 `_slim` 을 먼저 잡는다.
+    (`origin.json` 은 이미 없는 채로 전 과정이 통과한다.)
+
+    타임리는 `.pi/skills/` 를 **매 턴 지우고 다시 만든다.** 읽지도 않을
+    50MB 를 매 턴 펼치는 값을 치를 이유가 없다.
+
+    🔴 이름으로 짝을 찾는다 — 「슬림본이 없는 원본」은 그대로 담는다.
+       새 소스를 넣고 슬림을 안 만들면 원본이 자동으로 들어가므로,
+       규칙이 조용히 자료를 빠뜨리지 않는다.
+
+    잃는 것은 하나 — 심사자가 `slim.py` 로 슬림본을 다시 만드는 길이다.
+    그건 어차피 자기 키로 재수집해야 하는 작업이라 원본이 있어도 못 한다.
+    """
+    슬림보유 = {f.name.split("_slim")[0] for f in 파일들 if "_slim" in f.name}
+    남김, 뺀것 = [], []
+    for f in 파일들:
+        원본임 = (f.parent.name == "sample-data" and "_slim" not in f.name
+               and f.name.split(".")[0] in 슬림보유)
+        (뺀것 if 원본임 else 남김).append(f)
+    return 남김, 뺀것
+
+
 def 키검사(파일들: list[pathlib.Path]) -> list[str]:
     """텍스트 파일에 인증키가 박혀 있지 않은지 본다."""
     걸림: list[str] = []
@@ -102,8 +130,11 @@ def main() -> None:
         raise SystemExit(1)
     print(f"  필수 파일 {len(필수)}개 확인")
 
-    파일들 = 담을파일들()
+    파일들, 뺀것 = 원본거르기(담을파일들())
     print(f"담을 파일 {len(파일들)}개")
+    for f in 뺀것:
+        print(f"  제외 {f.name:26} {f.stat().st_size/1e6:>5.1f}MB"
+              f" — 슬림본이 있어 런타임에 읽히지 않습니다")
 
     걸림 = 키검사(파일들)
     if 걸림:
