@@ -1,0 +1,14 @@
+{
+  // 마크다운에서 스니펫이 동작하게 한다.
+  // VS Code는 기본적으로 마크다운에서 자동완성을 꺼두기 때문에,
+  // 이 설정이 없으면 cm + Tab 이 확장되지 않는다.
+  "[markdown]": {
+    "editor.tabCompletion": "on",
+    "editor.quickSuggestions": {
+      "other": "on",
+      "comments": "off",
+      "strings": "off"
+    },
+    "editor.suggest.showSnippets": true
+  }
+}
