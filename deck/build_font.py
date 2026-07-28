@@ -27,7 +27,9 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 
 DECK = pathlib.Path(__file__).resolve().parent
-HTML = DECK / "presentation.html"
+# 발표자료와 포스터 둘 다. 🔴 문서마다 쓰인 글자가 다르므로 **따로** 자른다 —
+#    한쪽 글자로 다른 쪽을 덮으면 없는 글자가 조용히 다른 글꼴로 튄다.
+문서들 = [DECK / "presentation.html", DECK / "onepager.html"]
 
 # 시스템에 설치된 Noto Sans KR 가변폰트. 한 파일로 300~800 굵기를 모두 낸다.
 후보 = [
@@ -66,16 +68,23 @@ def main() -> None:
             print(f"   {p}")
         raise SystemExit(1)
 
+    print(f"원본  {원본.name}  ({원본.stat().st_size/1e6:.1f}MB)\n")
+    for HTML in 문서들:
+        if not HTML.exists():
+            print(f"  {HTML.name:22} 없음 — 건너뜁니다")
+            continue
+        심기(원본, HTML)
+
+
+def 심기(원본: pathlib.Path, HTML: pathlib.Path) -> None:
     html = HTML.read_text(encoding="utf-8")
     if "/* FONT:BEGIN */" not in html or "/* FONT:END */" not in html:
-        print("🔴 presentation.html 에 FONT:BEGIN/END 표시가 없습니다.")
+        print(f"🔴 {HTML.name} 에 FONT:BEGIN/END 표시가 없습니다.")
         raise SystemExit(1)
 
     글자 = set(본문글자(html)) | set(기본)
     글자 = {c for c in 글자 if c.isprintable() and not c.isspace()}
     text = "".join(sorted(글자))
-    print(f"원본  {원본.name}  ({원본.stat().st_size/1e6:.1f}MB)")
-    print(f"남길 글자 {len(글자)}자")
 
     폰트 = TTFont(str(원본), fontNumber=0, lazy=True)
     가변 = "fvar" in 폰트
@@ -94,7 +103,6 @@ def main() -> None:
     buf = io.BytesIO()
     폰트.save(buf)
     데이터 = buf.getvalue()
-    print(f"서브셋 {len(데이터)/1024:.1f}KB  (가변축 {'유지' if 가변 else '없음'})")
 
     b64 = base64.b64encode(데이터).decode("ascii")
     굵기 = "100 900" if 가변 else "400"
@@ -114,7 +122,8 @@ def main() -> None:
     새html = re.sub(r"/\* FONT:BEGIN \*/.*?/\* FONT:END \*/", lambda _: 블록,
                    html, flags=re.S)
     HTML.write_text(새html, encoding="utf-8")
-    print(f"→ presentation.html 에 심었습니다  (문서 {len(새html.encode())/1024:.0f}KB)")
+    print(f"  {HTML.name:22} 글자 {len(글자):>3}자 → 자형 {len(데이터)/1024:>5.1f}KB"
+          f"  · 문서 {len(새html.encode())/1024:.0f}KB")
 
 
 if __name__ == "__main__":
