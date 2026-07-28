@@ -22,7 +22,8 @@
   }
   /* 단색 바탕이 아니라 두 겹의 광원. 스크롤해도 고정된다 */
   body {
-    font-size: var(--text-base); line-height: 1.65;
+    font-size: var(--text-base); line-height: 1.6;
+    letter-spacing: var(--track-ko);
     background:
       radial-gradient(1100px 560px at 14% -8%,
         color-mix(in oklch, var(--color-accent-tint) 75%, transparent), transparent 62%),
@@ -81,13 +82,13 @@
   }
 
   .hero-num { font-size: var(--text-hero); line-height: 0.9; font-weight: 600;
-              letter-spacing: -0.05em; overflow-wrap: anywhere; min-width: 0; }
+              letter-spacing: -0.055em; overflow-wrap: anywhere; min-width: 0; }
   .hero-num.up   { color: var(--color-up); }
   .hero-num.calm { color: var(--color-ink-0); }
   .hero-num .unit { font-size: 0.34em; letter-spacing: -0.01em;
                     color: var(--color-ink-2); margin-left: 0.12em; }
-  .hero-say { font-size: var(--text-xl); line-height: 1.45; margin: 0;
-              color: var(--color-ink-1); }
+  .hero-say { font-size: var(--text-xl); line-height: 1.42; margin: 0;
+              letter-spacing: -0.018em; color: var(--color-ink-1); }
   .hero-say strong { font-weight: inherit; color: var(--color-ink-0); }
 
   /* ── 용어. 한 번만 정의하고 접어둔다 ── */
@@ -227,7 +228,7 @@
                 border-bottom: 1px solid var(--color-leaf-line); }
   .entry-head .rank { font-family: var(--font-mono); font-size: var(--text-xs);
                       color: var(--color-ink-3); }
-  .entry-head .item { font-size: 1.75rem; font-weight: 600;
+  .entry-head .item { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em;
                       letter-spacing: -0.035em; line-height: 1.1; }
   .entry-head .move { margin-left: auto; display: flex; flex-direction: column;
                       align-items: flex-end; line-height: 1.25; }
@@ -238,7 +239,7 @@
            letter-spacing: 0.06em; color: var(--color-warning);
            border: 1px solid currentColor; border-radius: var(--radius-pill);
            padding: 2px 9px; }
-  .say { margin: 0; font-size: var(--text-md); line-height: 1.6;
+  .say { margin: 0; font-size: var(--text-md); line-height: 1.62;
          color: var(--color-ink-1); }
   .say strong { font-weight: inherit; }
 
@@ -274,7 +275,7 @@
              margin-bottom: var(--space-2xs); }
   .stat .k::before { content: ""; width: 15px; height: 15px; flex: none;
                      border-radius: 999px; background: var(--color-companion); }
-  .stat .v { font-size: 3rem; line-height: 1.05; letter-spacing: -0.04em;
+  .stat .v { font-size: 2.75rem; line-height: 1.05; letter-spacing: -0.045em;
              color: var(--color-ink-0); }
   .stat .v .u { font-size: 0.42em; margin-left: 0.1em; color: var(--color-ink-2); }
   .stat .sub { font-size: var(--text-md); color: var(--color-ink-2);

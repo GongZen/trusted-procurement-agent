@@ -65,14 +65,28 @@
                system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Consolas, monospace;
 
-  --text-xs:   0.75rem;
-  --text-sm:   0.875rem;
-  --text-base: 1rem;
-  --text-md:   1.0625rem;
-  --text-lg:   1.25rem;
-  --text-xl:   1.625rem;
-  --text-2xl:  2.25rem;
-  --text-hero: clamp(3.25rem, 12vw, 5.5rem);
+  /* 🔴 **자형 대신 크기로 다듬는다.**
+   *
+   *    한글 웹폰트를 심어 어디서나 같은 자형을 내는 길은 막혀 있다 —
+   *    화면에 나올 수 있는 글자만 추려도 106KB(본문 삽입 142KB)이고,
+   *    타임리 create_artifact 한도가 200KB, 본문이 이미 48KB 다.
+   *    (실측: 한글 전체 2,341KB · 상용 2,350자 460KB)
+   *
+   *    맑은 고딕은 **클수록 거칠어 보인다** — 힌팅이 작은 크기에 맞춰져
+   *    있어서다. 그래서 본문을 한 단 내리고 자간을 살짝 조인다.
+   *    위계는 크기 차이가 아니라 **굵기와 자리**가 이미 만들고 있다.
+   *
+   *    품목을 넓힌 뒤 용량이 허락하면 그때 자형을 심는다. */
+  --text-xs:   0.6875rem;   /* 12 → 11 */
+  --text-sm:   0.8125rem;   /* 14 → 13 */
+  --text-base: 0.9375rem;   /* 16 → 15 */
+  --text-md:   1rem;        /* 17 → 16 */
+  --text-lg:   1.125rem;    /* 20 → 18 */
+  --text-xl:   1.4375rem;   /* 26 → 23 */
+  --text-2xl:  2rem;        /* 36 → 32 */
+  --text-hero: clamp(2.75rem, 10vw, 4.75rem);
+  /* 한글은 자간이 조금 좁아야 덩어리로 읽힌다 */
+  --track-ko: -0.008em;
 
   --space-2xs: 0.25rem; --space-xs: 0.5rem;  --space-sm: 0.75rem;
   --space-md:  1rem;    --space-lg: 1.5rem;  --space-xl: 2rem;
