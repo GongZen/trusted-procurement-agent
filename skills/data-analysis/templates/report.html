@@ -184,14 +184,14 @@
      꺾은선은 「이렇게 흘러왔다」는 추세로 읽히는데 우리는 추세를 주장하지
      않는다. 우리가 말하는 것은 「6년 중 몇 번째」 하나뿐이므로 그림도
      그것만 그린다. */
-  .chart .bars { display: flex; flex-direction: column; gap: 5px; }
+  .chart .bars { display: flex; flex-direction: column; gap: 9px; }
   .chart .bar { display: grid; grid-template-columns: 2.9rem minmax(0, 1fr) 3.6rem;
                 align-items: center; gap: var(--space-xs); }
   .chart .bar .yr { font-family: var(--font-mono); font-size: var(--text-xs);
                     color: var(--color-ink-3); text-align: right; }
   .chart .bar .val { font-family: var(--font-mono); font-size: var(--text-xs);
                      color: var(--color-ink-3); text-align: right; }
-  .chart .bar .track { height: 15px; background: color-mix(in oklch,
+  .chart .bar .track { height: 21px; background: color-mix(in oklch,
                        var(--color-ink-0) 4%, transparent); border-radius: 2px; }
   .chart .bar .fill { display: block; height: 100%; border-radius: 2px;
                       background: color-mix(in oklch, var(--color-ink-0) 13%, transparent);
@@ -243,9 +243,12 @@
   /* 🔴 이 자리는 「방향」이 아니라 「순위」다. 증감 색을 쓰면 오름/내림
      신호로 읽힌다. 색을 빼고 굵기만 준다. 자형도 품목명과 같게 —
      mono 는 한글이 없어 자형이 섞인다. */
-  .entry-head .move .fig { font-family: var(--font-body);
-                           font-size: var(--text-lg); font-weight: 700;
-                           letter-spacing: -0.02em; color: var(--color-ink-0); }
+  /* 🔴 `.fig` 클래스를 쓰지 않는다. 그 클래스가 mono 를 물고 있어서
+     재정의로 덮어도 한 군데만 어긋나면 자형이 섞인다. **클래스를 아예
+     따로 둔다** — 가이드 제목에서 겪은 것과 같은 사고다. */
+  .entry-head .move .rankword { font-size: var(--text-lg); font-weight: 700;
+                                letter-spacing: -0.02em;
+                                color: var(--color-ink-0); }
   .badge { font-family: var(--font-mono); font-size: var(--text-xs);
            letter-spacing: 0.06em; color: var(--color-warning);
            border: 1px solid currentColor; border-radius: var(--radius-pill);

@@ -202,7 +202,7 @@ def 카드(p: dict, 순번: int, 전체: int, 대상월: str) -> str:
     항목.append(
         f'<span class="move"><span class="movek">{esc(p.get("주인공단계", ""))} '
         f'단계 · {esc(p.get("주인공단위", ""))}</span>'
-        f'<span class="fig">{자리(p.get("주인공순위"))}</span></span></div>')
+        f'<span class="rankword">{자리(p.get("주인공순위"))}</span></span></div>')
 
     # ── 왼쪽: 설명 + 큰 숫자 하나 ──
     왼 = [f'<p class="say">{굵게(p["사람말"])}</p>']
