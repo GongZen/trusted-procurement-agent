@@ -13,6 +13,7 @@ import os
 import sys
 import ssl
 import json
+import threading
 import time
 import pathlib
 from dataclasses import dataclass, field
@@ -88,6 +89,7 @@ class Client:
         self.retries = retries
         self.backoff = backoff
         self.call_count = 0          # 일 트래픽 10,000 한도를 추적한다
+        self._lock = threading.Lock()   # 병렬 호출에서도 카운트가 맞아야 한다
 
     # ── 요청 URL 조립 ────────────────────────────────────────────
     def _url(self, op: str, cond: dict | None, page: int, rows: int) -> str:
@@ -113,7 +115,8 @@ class Client:
 
         for attempt in range(1, self.retries + 1):
             try:
-                self.call_count += 1
+                with self._lock:
+                    self.call_count += 1
                 req = Request(url, headers={"Accept": "application/json"})
                 with urlopen(req, timeout=self.timeout, context=_SSL) as resp:
                     payload = json.loads(resp.read().decode("utf-8"))

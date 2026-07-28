@@ -17,6 +17,7 @@ import json
 import sys
 import pathlib
 from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from api import Client, use_utf8_stdout  # noqa: E402
@@ -26,6 +27,7 @@ import paths                                                        # noqa: E402
 ROOT = paths.SKILL
 CONFIG = paths.CONFIG / "settings.json"
 OUT = paths.SAMPLE
+동시호출 = 16     # 공공데이터포털이 견디는 선. 실측으로 확인했다
 
 
 # ── 대응표 ───────────────────────────────────────────────────────────
@@ -64,42 +66,54 @@ def 소매수집(client: Client, 품목들: list[dict], 기준일: str,
     5년치가 25만 행이지만, 품목을 지정하면 한 품목당 7,000행 안쪽이다."""
     끝연도 = int(기준일[:4])
     시작연도 = 끝연도 - 기준연수
-    rows: list[dict] = []
-    for item in 품목들:
-        if not item.get("품목코드"):
-            continue
+    대상 = [i for i in 품목들 if i.get("품목코드")]
+
+    # 🔴 순차로 돌면 품목 하나에 7호출 × 1.5초라 61종이면 15분이 넘는다.
+    #    실행 환경에 시간 제한이 있으므로 병렬로 받는다. 한 품목의 페이지
+    #    넘김은 `fetch_all` 안에서 순차이므로 순서가 깨지지 않는다.
+    def 하나(item: dict):
         r = client.fetch_all("perYearMonth/price", {
             "exmn_ym::GTE": f"{시작연도}01",
             "exmn_ym::LTE": f"{끝연도}12",
             "ctgry_cd::EQ": item["부류코드"],
             "item_cd::EQ": item["품목코드"],
         }, max_pages=30)
-        if r.ok:
-            rows.extend(r.rows)
-            if r.error:
-                기록["경고"].append(f"소매 {item['품목명']}: {r.error}")
-        else:
-            기록["실패"].append(f"소매 {item['품목명']}: {r.error}")
-        print(f"    소매 {item['품목명']:8} {len(r.rows):>6}행", flush=True)
+        return item, r
+
+    rows: list[dict] = []
+    with ThreadPoolExecutor(max_workers=동시호출) as ex:
+        for item, r in ex.map(하나, 대상):
+            if r.ok:
+                rows.extend(r.rows)
+                if r.error:
+                    기록["경고"].append(f"소매 {item['품목명']}: {r.error}")
+            else:
+                기록["실패"].append(f"소매 {item['품목명']}: {r.error}")
+            print(f"    소매 {item['품목명']:8} {len(r.rows):>6}행", flush=True)
     return rows
 
 
 def 도매수집(client: Client, 시장들: list[str], 날짜들: list[str],
            기록: dict) -> list[dict]:
     """도매시장 정산. 🔴 날짜 형식이 `YYYY-MM-DD` 로 다르다."""
-    rows: list[dict] = []
-    for 날짜 in 날짜들:
+    조합 = [(날짜, 시장) for 날짜 in 날짜들 for 시장 in 시장들]
+
+    def 하나(쌍):
+        날짜, 시장 = 쌍
         하이픈 = f"{날짜[:4]}-{날짜[4:6]}-{날짜[6:]}"
-        for 시장 in 시장들:
-            r = client.fetch_all("katSale/trades", {
-                "trd_clcln_ymd::EQ": 하이픈,
-                "whsl_mrkt_cd::EQ": 시장,
-            }, max_pages=15)
+        return 쌍, client.fetch_all("katSale/trades", {
+            "trd_clcln_ymd::EQ": 하이픈,
+            "whsl_mrkt_cd::EQ": 시장,
+        }, max_pages=15)
+
+    rows: list[dict] = []
+    with ThreadPoolExecutor(max_workers=동시호출) as ex:
+        for (날짜, 시장), r in ex.map(하나, 조합):
             if r.ok:
                 rows.extend(r.rows)
             else:
                 기록["실패"].append(f"도매 {시장}/{날짜}: {r.error}")
-        print(f"    도매 {날짜} 누적 {len(rows):>6}행", flush=True)
+    print(f"    도매 {len(rows):,}행", flush=True)
     return rows
 
 
@@ -115,15 +129,17 @@ def 산지수집(client: Client, 상위: int, 날짜들: list[str],
         (paths.REFERENCE / "trial_halls.csv").open(encoding="utf-8-sig")))
     rows: list[dict] = []
 
-    # 1) 첫 날짜로 활성 공판장을 찾는다
+    # 1) 첫 날짜로 활성 공판장을 찾는다 — 157곳을 병렬로 훑는다
     첫날 = 날짜들[0]
-    활성: list[tuple[str, int]] = []
-    for h in halls:
+
+    def 탐색(h):
         r = client.call("originTrialHall/dealings",
                         {"clcln_ymd::EQ": 첫날, "trhl_cd::EQ": h["공판장코드"]},
                         rows=1)
-        if r.ok and r.total:
-            활성.append((h["공판장코드"], r.total))
+        return (h["공판장코드"], r.total) if (r.ok and r.total) else None
+
+    with ThreadPoolExecutor(max_workers=동시호출) as ex:
+        활성 = [x for x in ex.map(탐색, halls) if x]
     활성.sort(key=lambda x: -x[1])
     선택 = [코드 for 코드, _ in 활성[:상위]]
     print(f"    산지 {첫날} 거래 있는 곳 {len(활성)}/{len(halls)} → 상위 {len(선택)}곳 수집",
@@ -131,17 +147,21 @@ def 산지수집(client: Client, 상위: int, 날짜들: list[str],
     if not 활성:
         기록["경고"].append(f"산지 {첫날}: 거래 있는 공판장이 없다")
 
-    # 2) 선택된 곳만 전 날짜 수집
-    for 날짜 in 날짜들:
-        for 코드 in 선택:
-            r = client.fetch_all("originTrialHall/dealings",
-                                 {"clcln_ymd::EQ": 날짜, "trhl_cd::EQ": 코드},
-                                 max_pages=10)
+    # 2) 선택된 곳만 전 날짜 수집 — 병렬
+    def 받기(쌍):
+        날짜, 코드 = 쌍
+        return 쌍, client.fetch_all("originTrialHall/dealings",
+                                   {"clcln_ymd::EQ": 날짜, "trhl_cd::EQ": 코드},
+                                   max_pages=10)
+
+    조합 = [(날짜, 코드) for 날짜 in 날짜들 for 코드 in 선택]
+    with ThreadPoolExecutor(max_workers=동시호출) as ex:
+        for (날짜, 코드), r in ex.map(받기, 조합):
             if r.ok:
                 rows.extend(r.rows)
             else:
                 기록["실패"].append(f"산지 {코드}/{날짜}: {r.error}")
-        print(f"    산지 {날짜} 누적 {len(rows):>6}행", flush=True)
+    print(f"    산지 {len(rows):,}행", flush=True)
     return rows
 
 

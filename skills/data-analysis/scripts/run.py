@@ -34,8 +34,23 @@ def 읽기(이름: str) -> list[dict]:
         raise SystemExit(f"수집본이 없습니다: {경로} — 먼저 collect.py 를 실행하세요.")
     if 경로.suffix == ".gz":
         with gzip.open(경로, "rt", encoding="utf-8") as fp:
-            return json.load(fp)
-    return json.loads(경로.read_text(encoding="utf-8"))
+            자료 = json.load(fp)
+    else:
+        자료 = json.loads(경로.read_text(encoding="utf-8"))
+
+    # 🔴 {"메타":…, "행":…} 형태면 받다 만 파일인지 검사한다.
+    #    받기로 한 날짜 수와 실제로 받은 수가 다르면 쓰지 않는다 —
+    #    반쪽 자료로 「최근 5년」을 계산하면 기준가가 조용히 틀어진다.
+    if isinstance(자료, dict) and "행" in 자료:
+        메타 = 자료.get("메타", {})
+        if 메타.get("완전함") is False:
+            raise SystemExit(
+                f"🔴 {경로.name} 은 받다 만 파일입니다 "
+                f"({메타.get('받은날짜수')}/{메타.get('요청날짜수')}일). "
+                f"빠진 날짜: {메타.get('빠진날짜')} — "
+                f"다시 수집하거나 온전한 스냅샷을 쓰세요.")
+        return 자료["행"]
+    return 자료
 
 
 def 대응표() -> dict[str, dict]:
