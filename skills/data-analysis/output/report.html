@@ -1,0 +1,99 @@
+<!-- 예외 보고 한 장 — 렌더러가 채우는 자리는 {{...}} 로 표시한다.
+     🔴 이 파일에는 계산이 없다. 숫자는 전부 analyze.py 가 만든 JSON 에서 온다.
+     외부 자원을 참조하지 않는다 — 타임리 아티팩트는 인라인 HTML 만 렌더링한다. -->
+<style>
+  :root {
+    --bg: #fbfaf8; --card: #fff; --ink: #1c1917; --muted: #78716c;
+    --line: #e7e5e4; --high: #b91c1c; --high-bg: #fef2f2;
+    --mid: #b45309; --low: #0369a1; --ok: #15803d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1917; --card: #292524; --ink: #f5f5f4; --muted: #a8a29e;
+      --line: #44403c; --high: #f87171; --high-bg: #451a1a;
+      --mid: #fbbf24; --low: #7dd3fc; --ok: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px; background: var(--bg); color: var(--ink);
+    font-family: "Pretendard", -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    line-height: 1.65; font-size: 15px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 12px; margin-bottom: 8px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .auto { display: inline-block; background: var(--ink); color: var(--bg);
+          padding: 1px 8px; border-radius: 3px; font-size: 11px; margin-left: 6px; }
+
+  .lede { font-size: 17px; margin: 14px 0 0; }
+  .lede strong { color: var(--high); }
+
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: 10px; padding: 18px 20px; margin-top: 16px; }
+  .card.top { border-left: 4px solid var(--high); }
+
+  .rank { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .rank b { font-size: 19px; }
+  .rank .no { color: var(--high); font-weight: 700; font-size: 13px; }
+  .verdict { font-size: 16px; margin: 2px 0 14px; }
+  .verdict strong { color: var(--high); }
+
+  /* 유통 3단계 — 이 그림이 이 산출물의 핵심이다 */
+  .chain { display: flex; align-items: stretch; gap: 0; margin: 14px 0 6px; }
+  .stage { flex: 1; text-align: center; padding: 10px 6px; border: 1px solid var(--line);
+           border-radius: 8px; background: var(--bg); }
+  .stage .nm { font-size: 12px; color: var(--muted); }
+  .stage .st { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .stage .px { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stage.높음 { border-color: var(--high); background: var(--high-bg); }
+  .stage.높음 .st { color: var(--high); }
+  .stage.낮음 .st { color: var(--low); }
+  .stage.평년수준 .st { color: var(--ok); }
+  .stage.자료없음 { opacity: .45; }
+  .arrow { display: flex; align-items: center; color: var(--muted);
+           padding: 0 6px; font-size: 13px; }
+
+  .reading { background: var(--bg); border-left: 3px solid var(--muted);
+             padding: 8px 12px; margin: 10px 0 0; font-size: 14px; }
+
+  .block { margin-top: 14px; }
+  .block h3 { font-size: 13px; color: var(--muted); margin: 0 0 4px;
+              font-weight: 600; letter-spacing: .02em; }
+  .block ul { margin: 0; padding-left: 18px; }
+  .block li { margin: 2px 0; }
+
+  .flag { display: inline-block; background: var(--mid); color: #fff;
+          font-size: 11px; padding: 1px 7px; border-radius: 3px; }
+
+  footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
+           font-size: 13px; color: var(--muted); }
+  footer h3 { font-size: 13px; color: var(--ink); margin: 0 0 6px; }
+  .none { text-align: center; padding: 40px 20px; color: var(--muted); }
+  table.audit { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+  table.audit td { border-top: 1px solid var(--line); padding: 3px 6px; }
+  .scroll { overflow-x: auto; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>오늘 먼저 볼 것 5가지</h1>
+    <div class="meta">
+      기준일 20260727 · 생성 2026-07-28 18:19
+      <span class="auto">사람 개입 없이 자동 생성</span>
+    </div>
+  </header>
+
+  <p class="lede"><strong>오늘은 평소와 크게 다른 품목이 없습니다.</strong> 아래는 그중 상대적으로 높은 순서일 뿐입니다.</p>
+
+  <div class="card top"><div class="rank"><span class="no">1위</span><b>풋고추</b></div><div class="verdict">조사한 149곳 중 <strong>19곳</strong>에서 지난 5년 7월 중 가장 비쌉니다. 전반적으로는 평소 이맘때의 <strong>0.94배</strong> 수준입니다.</div><div class="chain"><div class="stage 낮음"><div class="nm">산지</div><div class="st">낮음</div><div class="px">평년의 0.6배</div></div><div class="arrow">→</div><div class="stage 낮음"><div class="nm">도매</div><div class="st">낮음</div><div class="px">평년의 0.73배</div></div><div class="arrow">→</div><div class="stage 평년수준"><div class="nm">소매</div><div class="st">평년수준</div><div class="px">평년의 1.0배</div></div></div><p class="reading">유통 단계로 보면 <strong>산지·도매가 평년보다 낮습니다.</strong> 일부 지역·등급에서만 높게 나온 것입니다.</p><div class="block"><h3>확인해 보실 것</h3><ul><li>이번 주 발주 예정 물량이 있는지 확인해 보세요.</li></ul></div><div class="block"><h3>저희가 모르는 것</h3><ul><li>귀사의 계약단가 — 계약이 걸려 있으면 이 변동과 무관할 수 있습니다.</li></ul></div></div><div class="card"><div class="rank"><span class="no">2위</span><b>사과</b></div><div class="verdict">조사한 89곳 중 <strong>6곳</strong>에서 지난 5년 7월 중 가장 비쌉니다. 전반적으로는 평소 이맘때의 <strong>0.92배</strong> 수준입니다.</div><div class="chain"><div class="stage 낮음"><div class="nm">산지</div><div class="st">낮음</div><div class="px">평년의 0.84배</div></div><div class="arrow">→</div><div class="stage 평년수준"><div class="nm">도매</div><div class="st">평년수준</div><div class="px">평년의 1.05배</div></div><div class="arrow">→</div><div class="stage 평년수준"><div class="nm">소매</div><div class="st">평년수준</div><div class="px">평년의 0.89배</div></div></div><p class="reading">유통 단계로 보면 <strong>산지가 평년보다 낮습니다.</strong> 일부 지역·등급에서만 높게 나온 것입니다.</p><div class="block"><h3>확인해 보실 것</h3><ul><li>이번 주 발주 예정 물량이 있는지 확인해 보세요.</li></ul></div><div class="block"><h3>저희가 모르는 것</h3><ul><li>귀사의 계약단가 — 계약이 걸려 있으면 이 변동과 무관할 수 있습니다.</li></ul></div></div><div class="card"><div class="rank"><span class="no">3위</span><b>호박</b></div><div class="verdict">조사한 68곳 중 <strong>3곳</strong>에서 지난 5년 7월 중 가장 비쌉니다. 전반적으로는 평소 이맘때의 <strong>0.79배</strong> 수준입니다.</div><div class="chain"><div class="stage 낮음"><div class="nm">산지</div><div class="st">낮음</div><div class="px">평년의 0.74배</div></div><div class="arrow">→</div><div class="stage 낮음"><div class="nm">도매</div><div class="st">낮음</div><div class="px">평년의 0.7배</div></div><div class="arrow">→</div><div class="stage 낮음"><div class="nm">소매</div><div class="st">낮음</div><div class="px">평년의 0.81배</div></div></div><p class="reading">유통 단계로 보면 <strong>산지·도매·소매가 평년보다 낮습니다.</strong> 일부 지역·등급에서만 높게 나온 것입니다.</p><div class="block"><h3>확인해 보실 것</h3><ul><li>이번 주 발주 예정 물량이 있는지 확인해 보세요.</li></ul></div><div class="block"><h3>저희가 모르는 것</h3><ul><li>귀사의 계약단가 — 계약이 걸려 있으면 이 변동과 무관할 수 있습니다.</li></ul></div></div><div class="card"><div class="rank"><span class="no">4위</span><b>포도</b></div><div class="verdict">조사한 96곳 중 <strong>4곳</strong>에서 지난 5년 7월 중 가장 비쌉니다. 전반적으로는 평소 이맘때의 <strong>0.81배</strong> 수준입니다.</div><div class="chain"><div class="stage 낮음"><div class="nm">산지</div><div class="st">낮음</div><div class="px">평년의 0.63배</div></div><div class="arrow">→</div><div class="stage 평년수준"><div class="nm">도매</div><div class="st">평년수준</div><div class="px">평년의 0.87배</div></div><div class="arrow">→</div><div class="stage 낮음"><div class="nm">소매</div><div class="st">낮음</div><div class="px">평년의 0.76배</div></div></div><p class="reading">유통 단계로 보면 <strong>산지·소매가 평년보다 낮습니다.</strong> 일부 지역·등급에서만 높게 나온 것입니다.</p><div class="block"><h3>확인해 보실 것</h3><ul><li>이번 주 발주 예정 물량이 있는지 확인해 보세요.</li></ul></div><div class="block"><h3>저희가 모르는 것</h3><ul><li>귀사의 계약단가 — 계약이 걸려 있으면 이 변동과 무관할 수 있습니다.</li></ul></div></div><div class="card"><div class="rank"><span class="no">5위</span><b>수박</b></div><div class="verdict">조사한 56곳 중 <strong>2곳</strong>에서 지난 5년 7월 중 가장 비쌉니다. 전반적으로는 평소 이맘때의 <strong>0.98배</strong> 수준입니다.</div><div class="chain"><div class="stage 평년수준"><div class="nm">산지</div><div class="st">평년수준</div><div class="px">평년의 1.06배</div></div><div class="arrow">→</div><div class="stage 평년수준"><div class="nm">도매</div><div class="st">평년수준</div><div class="px">평년의 0.93배</div></div><div class="arrow">→</div><div class="stage 평년수준"><div class="nm">소매</div><div class="st">평년수준</div><div class="px">평년의 0.99배</div></div></div><p class="reading">유통 단계로 보면 <strong>전 단계가 평년 수준</strong>입니다. 일부 지역·등급에서만 높게 나온 것입니다.</p><div class="block"><h3>확인해 보실 것</h3><ul><li>이번 주 발주 예정 물량이 있는지 확인해 보세요.</li></ul></div><div class="block"><h3>저희가 모르는 것</h3><ul><li>귀사의 계약단가 — 계약이 걸려 있으면 이 변동과 무관할 수 있습니다.</li></ul></div></div>
+
+  <footer>
+    <h3>이 보고서가 답하지 않는 것</h3>
+    <ul><li>귀사의 계약단가·재고·발주 일정을 모릅니다. 계약이 걸려 있으면 이 변동과 무관할 수 있습니다.</li><li>앞으로 오를지 내릴지 예측하지 않습니다. 선행성을 측정하지 않았기 때문입니다.</li><li>유통 단계별 관측은 원인 규명이 아닙니다. 어디서 벌어졌는지까지만 말합니다.</li></ul>
+    <h3 style="margin-top:14px">근거</h3>
+    <div class="scroll"><table class="audit"><tr><td>데이터</td><td>공공데이터포털 — 산지공판장 · 도매시장 정산 · 도소매 가격</td></tr><tr><td>기준가</td><td>같은 품목·같은 지역·같은 등급의 과거 5년 같은 달</td></tr><tr><td>판정</td><td>올해 값이 그 관측들 사이에서 몇 번째인지. 임의 임계치를 쓰지 않음</td></tr><tr><td>수집</td><td>{'소매': 42115, '도매': 12500, '산지': 6962} · 호출 245회</td></tr></table></div>
+  </footer>
+</div>

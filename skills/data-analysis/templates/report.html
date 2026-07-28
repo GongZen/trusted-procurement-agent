@@ -1,0 +1,99 @@
+<!-- 예외 보고 한 장 — 렌더러가 채우는 자리는 {{...}} 로 표시한다.
+     🔴 이 파일에는 계산이 없다. 숫자는 전부 analyze.py 가 만든 JSON 에서 온다.
+     외부 자원을 참조하지 않는다 — 타임리 아티팩트는 인라인 HTML 만 렌더링한다. -->
+<style>
+  :root {
+    --bg: #fbfaf8; --card: #fff; --ink: #1c1917; --muted: #78716c;
+    --line: #e7e5e4; --high: #b91c1c; --high-bg: #fef2f2;
+    --mid: #b45309; --low: #0369a1; --ok: #15803d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1917; --card: #292524; --ink: #f5f5f4; --muted: #a8a29e;
+      --line: #44403c; --high: #f87171; --high-bg: #451a1a;
+      --mid: #fbbf24; --low: #7dd3fc; --ok: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px; background: var(--bg); color: var(--ink);
+    font-family: "Pretendard", -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    line-height: 1.65; font-size: 15px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 12px; margin-bottom: 8px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .auto { display: inline-block; background: var(--ink); color: var(--bg);
+          padding: 1px 8px; border-radius: 3px; font-size: 11px; margin-left: 6px; }
+
+  .lede { font-size: 17px; margin: 14px 0 0; }
+  .lede strong { color: var(--high); }
+
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: 10px; padding: 18px 20px; margin-top: 16px; }
+  .card.top { border-left: 4px solid var(--high); }
+
+  .rank { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .rank b { font-size: 19px; }
+  .rank .no { color: var(--high); font-weight: 700; font-size: 13px; }
+  .verdict { font-size: 16px; margin: 2px 0 14px; }
+  .verdict strong { color: var(--high); }
+
+  /* 유통 3단계 — 이 그림이 이 산출물의 핵심이다 */
+  .chain { display: flex; align-items: stretch; gap: 0; margin: 14px 0 6px; }
+  .stage { flex: 1; text-align: center; padding: 10px 6px; border: 1px solid var(--line);
+           border-radius: 8px; background: var(--bg); }
+  .stage .nm { font-size: 12px; color: var(--muted); }
+  .stage .st { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .stage .px { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stage.높음 { border-color: var(--high); background: var(--high-bg); }
+  .stage.높음 .st { color: var(--high); }
+  .stage.낮음 .st { color: var(--low); }
+  .stage.평년수준 .st { color: var(--ok); }
+  .stage.자료없음 { opacity: .45; }
+  .arrow { display: flex; align-items: center; color: var(--muted);
+           padding: 0 6px; font-size: 13px; }
+
+  .reading { background: var(--bg); border-left: 3px solid var(--muted);
+             padding: 8px 12px; margin: 10px 0 0; font-size: 14px; }
+
+  .block { margin-top: 14px; }
+  .block h3 { font-size: 13px; color: var(--muted); margin: 0 0 4px;
+              font-weight: 600; letter-spacing: .02em; }
+  .block ul { margin: 0; padding-left: 18px; }
+  .block li { margin: 2px 0; }
+
+  .flag { display: inline-block; background: var(--mid); color: #fff;
+          font-size: 11px; padding: 1px 7px; border-radius: 3px; }
+
+  footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
+           font-size: 13px; color: var(--muted); }
+  footer h3 { font-size: 13px; color: var(--ink); margin: 0 0 6px; }
+  .none { text-align: center; padding: 40px 20px; color: var(--muted); }
+  table.audit { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+  table.audit td { border-top: 1px solid var(--line); padding: 3px 6px; }
+  .scroll { overflow-x: auto; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>오늘 먼저 볼 것{{제목수}}</h1>
+    <div class="meta">
+      기준일 {{기준일}} · 생성 {{생성시각}}
+      <span class="auto">사람 개입 없이 자동 생성</span>
+    </div>
+  </header>
+
+  <p class="lede">{{오늘한줄}}</p>
+
+  {{카드들}}
+
+  <footer>
+    <h3>이 보고서가 답하지 않는 것</h3>
+    <ul>{{한계들}}</ul>
+    <h3 style="margin-top:14px">근거</h3>
+    <div class="scroll"><table class="audit">{{근거표}}</table></div>
+  </footer>
+</div>
