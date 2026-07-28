@@ -26,7 +26,7 @@
 | 수집 요청 수 계산에 `floor`를 써서 **과소 산정** | 12품목 실측 후 **결론이 뒤집힘** — 일 트래픽 초과로 확정 |
 | 산수 오류 (3년 합계, 커버리지 분모, 짝수 표본 중앙값) | 전부 정정. **재검산 근거를 검토 기록에 남김** |
 
-근거: [PR #7 검토 이력](https://github.com/GongZen/trusted-profit-agent/pull/7) — 5라운드에 걸쳐 blocker 10건이 나왔고, 그중 **하나는 원래 결론 자체를 뒤집었다.**
+근거: [PR #7 검토 이력](https://github.com/GongZen/trusted-procurement-agent/pull/7) — 5라운드에 걸쳐 blocker 10건이 나왔고, 그중 **하나는 원래 결론 자체를 뒤집었다.**
 
 ---
 
@@ -57,8 +57,8 @@ flowchart LR
 
 ```bash
 # 각 AI에게 전용 브랜치와 전용 작업 폴더를 준다
-git worktree add ../trusted-profit-agent-claude -b work/claude
-git worktree add ../trusted-profit-agent-codex  -b work/codex
+git worktree add ../trusted-procurement-agent-claude -b work/claude
+git worktree add ../trusted-procurement-agent-codex  -b work/codex
 ```
 
 두 AI가 같은 폴더에서 일하면 **같은 파일을 동시에 쓰는 사고**가 언제든 일어난다.

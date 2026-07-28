@@ -7,7 +7,7 @@
     말하는 대신 스크립트가 브리핑을 만들어 지시문 앞에 붙인다.
 #>
 
-$script:RepoSlug = 'GongZen/trusted-profit-agent'
+$script:RepoSlug = 'GongZen/trusted-procurement-agent'
 
 function Get-RepoSlug { $script:RepoSlug }
 
