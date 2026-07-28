@@ -27,12 +27,22 @@ IP 등록·로그인·수동 승인이 필요 없으므로 **제3자가 자기 �
 모든 서비스가 `https://apis.data.go.kr/B552845/{서비스}/{오퍼레이션}` 형태다.
 공통 파라미터: `serviceKey` · `returnType`(JSON/XML) · `pageNo` · `numOfRows`(**상한 1,000**)
 
+> 🔴 **조건 파라미터는 반드시 `cond[...]`로 감싼다.** 실측 확인 2026-07-28.
+>
+> ```
+> ⭕ cond[exmn_ymd::GTE]=20250701&cond[ctgry_cd::EQ]=200&cond[item_cd::EQ]=211   → 565건
+> ❌ exmn_ymd::GTE=20250701&ctgry_cd=200&item_cd=211                              → 0건
+> ```
+>
+> **감싸지 않으면 오류가 아니라 `totalCount: 0`이 온다.** 조건이 조용히 무시되므로
+> *"데이터가 없다"*로 오판하기 쉽다. 아래 표의 조건 파라미터는 전부 이 형식으로 넣는다.
+
 | 데이터 ID | 서비스/오퍼레이션 | 필수 조건 파라미터 | 용도 |
 |---|---|---|---|
 | [15156057](https://www.data.go.kr/data/15156057/openapi.do) | `perDay/price` | `exmn_ymd::GTE` `LTE` · `ctgry_cd` · `item_cd` | **본체 — 일별 도소매 가격** |
 | [15156070](https://www.data.go.kr/data/15156070/openapi.do) | `risesAndFalls/info` | `exmn_ymd::EQ` | **등락률 — 전일·전주·전월·전년** |
 | [15156060](https://www.data.go.kr/data/15156060/openapi.do) | `perYearMonth/price` | `exmn_ym::GTE` `LTE` | **월별 통계 — 평균·최고·최저·표준편차·변동계수** |
-| [15156063](https://www.data.go.kr/data/15156063/openapi.do) | `recent/price` | (품목 조건) | **당일 시세 — 트리거용** |
+| [15156063](https://www.data.go.kr/data/15156063/openapi.do) | `recent/price` | **없음** | **당일 시세 — 트리거용** |
 | [15156054](https://www.data.go.kr/data/15156054/openapi.do) | `originTrialHall/dealings` | `clcln_ymd::EQ` · **`trhl_cd::EQ`** | **산지공판장 거래** |
 | [15141809](https://www.data.go.kr/data/15141809/openapi.do) | `katSale/trades` | `whsl_mrkt_cd::EQ` · `trd_clcln_ymd::EQ` | **도매시장 정산 — 법인·산지·물량** |
 | [15156062](https://www.data.go.kr/data/15156062/openapi.do) | `perRegion/price` | `exmn_ymd::GTE` `LTE` · **`sgg_cd::EQ`** | 지역별 비교 |
@@ -43,6 +53,13 @@ IP 등록·로그인·수동 승인이 필요 없으므로 **제3자가 자기 �
 | ~~[15141808](https://www.data.go.kr/data/15141808/openapi.do)~~ | ~~`katRealTime2/trades2`~~ | — | **탈락** (당일분만) |
 
 > **`recent/price`는 필수 조건 파라미터가 없다.** 품목 조건(`ctgry_cd`·`item_cd` 등)은 전부 선택이며, 생략하면 당일 전 품목이 나온다.
+> **그래서 이것이 `perDay` 계열의 품목 코드 전체를 얻는 가장 싼 경로다** — 호출 1회로 부류·품목·품종·등급 조합이 나온다.
+
+> 🔴 **`perDay/price`는 `item_cd`까지 있어야 응답한다.** 부류(`ctgry_cd`)만으로는 `totalCount: 0`이다(실측 2026-07-28).
+
+> 🔴 **`originTrialHall/dealings`는 `trhl_cd` 없이 어떤 날짜로도 0건을 반환한다.** 날짜만·기간·조건 없음·이름 `LIKE` 검색 전부 0건으로 확인했다(실측 2026-07-28).
+> **공판장 코드표는 상세 페이지의 참고문서** *「전국 산지공판장 거래정보 API명세 및 관련 코드 정보.zip」* **안에만 있다.**
+> 이 파일을 받기 전에는 산지 단계를 수집할 수 없다 — **3단계 분석의 선행 조건**이다.
 
 > 🔴 **날짜 형식이 서비스마다 다르다.** `perDay`·`originTrialHall`은 `YYYYMMDD`, `katSale`은 **`YYYY-MM-DD`**.
 
