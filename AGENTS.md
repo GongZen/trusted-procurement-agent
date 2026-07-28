@@ -39,11 +39,12 @@ gh pr view <번호> --json reviews --jq '.reviews[-1].body'
 | [Scaffolding.md](Scaffolding.md) | 진행 단계와 **잠가야 할 결정 영역** | 결정·순서와 관련된 모든 판단 |
 | [DECISIONS.md](DECISIONS.md) | 이미 내려진 결정과 **폐기된 결정의 경계** | 번복하려 할 때 (근거가 필요하다) |
 | [DATA_SOURCES.md](DATA_SOURCES.md) | API 엔드포인트·파라미터·재현 절차 | 데이터를 수집할 때 |
-| [COLLABORATION.md](COLLABORATION.md) | 협업 절차와 검토 기준 | PR을 만들거나 검토할 때 |
+| [COLLABORATION.md](COLLABORATION.md) | 협업 절차 + 🔑 **§0 진행 상황** | **새 세션은 여기부터 읽는다** |
 
-> 🔴 **주제가 전환됐다.** *수익성 진단 + 완결 데이터셋 2종* → **조달 의사결정 지원 + 공공데이터 API 4종**.
+> 🔴 **현재 정의:** 식자재 조달 **점검 우선순위**를 정하는 Agent · 데이터는 **공공데이터포털 API 13종**.
+> 확정 사항·실측 결과·플랫폼 제약·미확정 결정의 순서는 전부 **[COLLABORATION.md](COLLABORATION.md) §0**에 있다.
 > [DECISIONS.md](DECISIONS.md)에는 **폐기된 결정도 남아 있다.** 유효/폐기 표시를 확인하고 읽는다.
-> `PROJECT_BRIEF.md`와 `analysis/measure_premises.py`는 이 전환으로 삭제됐다 — 링크가 보이면 오래된 참조다.
+> `PROJECT_BRIEF.md`와 `analysis/measure_premises.py`는 삭제됐다 — 링크가 보이면 오래된 참조다.
 
 ---
 

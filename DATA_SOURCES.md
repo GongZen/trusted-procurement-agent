@@ -36,13 +36,21 @@ IP 등록·로그인·수동 승인이 필요 없으므로 **제3자가 자기 �
 | [15156054](https://www.data.go.kr/data/15156054/openapi.do) | `originTrialHall/dealings` | `clcln_ymd::EQ` · **`trhl_cd::EQ`** | **산지공판장 거래** |
 | [15141809](https://www.data.go.kr/data/15141809/openapi.do) | `katSale/trades` | `whsl_mrkt_cd::EQ` · `trd_clcln_ymd::EQ` | **도매시장 정산 — 법인·산지·물량** |
 | [15156062](https://www.data.go.kr/data/15156062/openapi.do) | `perRegion/price` | `exmn_ymd::GTE` `LTE` · **`sgg_cd::EQ`** | 지역별 비교 |
-| [15156064](https://www.data.go.kr/data/15156064/openapi.do) | `periodWholesale/…` | 기간 | 기간별 중도매인 가격 |
-| [15156065](https://www.data.go.kr/data/15156065/openapi.do) | `periodRetail/…` | 기간 | 기간별 소매가격 |
+| [15156064](https://www.data.go.kr/data/15156064/openapi.do) | `periodWholesale/price` | `exmn_ymd::GTE` `LTE` | 기간별 중도매인 가격 |
+| [15156065](https://www.data.go.kr/data/15156065/openapi.do) | `periodRetail/price` | `exmn_ymd::GTE` `LTE` | 기간별 소매가격 |
 | [15156073](https://www.data.go.kr/data/15156073/openapi.do) | `ecoFriendly/price` | `exmn_ymd::GTE` `LTE` | 친환경 프리미엄 |
 | [15156069](https://www.data.go.kr/data/15156069/openapi.do) | `priceSequel/info` | `exmn_ymd::EQ` | 가격 추이 |
 | ~~[15141808](https://www.data.go.kr/data/15141808/openapi.do)~~ | ~~`katRealTime2/trades2`~~ | — | **탈락** (당일분만) |
 
+> **`recent/price`는 필수 조건 파라미터가 없다.** 품목 조건(`ctgry_cd`·`item_cd` 등)은 전부 선택이며, 생략하면 당일 전 품목이 나온다.
+
 > 🔴 **날짜 형식이 서비스마다 다르다.** `perDay`·`originTrialHall`은 `YYYYMMDD`, `katSale`은 **`YYYY-MM-DD`**.
+
+> 🔴 **품목 키 체계가 두 계열로 갈린다.**
+> - `perDay` 계열(`perDay` · `recent` · `risesAndFalls` · `perYearMonth` · `perRegion` · `periodWholesale` · `periodRetail` · `ecoFriendly` · `priceSequel`) → **`ctgry_cd` · `item_cd` · `vrty_cd` · `grd_cd`**
+> - 거래 계열(`originTrialHall` · `katSale`) → **`gds_lclsf_cd` · `gds_mclsf_cd` · `gds_sclsf_cd` · `grd_cd`**
+>
+> **두 계열을 잇는 대응표가 필요하다** — [DATA_CRITERIA §3](DATA_CRITERIA.md)
 
 ### 1.1 본체 — `perDay/price`
 
