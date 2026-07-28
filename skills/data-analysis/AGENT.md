@@ -22,11 +22,12 @@ trigger_prompt: |
 
   3. `./tpa/output/report.html` **그 파일을 그대로** 띄운다.
 
-         create_artifact(from_path="./tpa/output/report.html",
+         create_artifact(from_path="tpa/output/report.html",
                          title="오늘 먼저 볼 것")
 
-     🔴 from_path 를 받지 않는 도구라면 그 파일을 **전부 읽어 내용을 그대로**
-        넘긴다. 80KB 안쪽이라 통째로 들어간다.
+     🔴 **경로 앞에 `./` 를 붙이지 않는다.** from_path 는 워크스페이스
+        기준 상대경로다. `./tpa/…` 로 주면 파일을 못 찾고, 그러면 모델이
+        「그럼 내가 만들자」로 넘어간다 — 실제로 그렇게 됐다.
      🔴 **어떤 경우에도 HTML 을 새로 쓰지 않는다.** 표를 만들지 않고,
         요약 화면을 만들지 않는다. 그 파일이 이미 완성된 화면이다.
         새로 만드는 순간 숫자와 품목명이 원본과 어긋난다.
@@ -45,6 +46,20 @@ trigger_prompt: |
 # Trusted Procurement Agent
 
 매일 아침 6시(Asia/Seoul), **사람이 없어도 혼자 돈다.**
+
+## 🔴 이 파일을 어디에 두어야 하나
+
+타임리는 **에이전트를 `.pi/agents/<이름>/AGENT.md` 에서 읽는다.**
+스킬 zip 은 `.pi/skills/` 아래에 풀리므로, **이 파일은 그 자리에 있는 한
+에이전트 정의로 읽히지 않는다.** 실제로 그래서 모델이 자기 AGENT.md 를
+새로 썼고, 여기 적힌 안전장치(요약 금지·품목명 변경 금지)가 통째로
+빠진 채 돌았다.
+
+스킬을 올린 뒤 **대화로 한 번 복사**해야 한다.
+
+    .pi/skills/trusted-procurement-agent/AGENT.md 를 그대로 읽어
+    .pi/agents/trusted-procurement-agent/AGENT.md 로 복사하고 저장해 줘.
+    내용을 고치거나 새로 쓰지 마.
 
 ## 하는 일
 
