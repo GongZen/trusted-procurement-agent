@@ -1,0 +1,154 @@
+"""공공데이터포털 농수산 API 호출부.
+
+이 파일이 존재하는 이유는 하나다 — **조건 파라미터를 `cond[...]`로 감싸는 규칙**이
+지켜지지 않으면 오류가 아니라 빈 결과가 오기 때문이다. 호출을 한 곳에 모아
+그 실수를 구조적으로 막는다. 근거: DATA_SOURCES.md §1
+
+인증키는 저장소에 두지 않는다. 홈 디렉터리의 `.datago-key` 또는
+환경변수 `DATAGO_KEY`에서 읽는다(참가 서약의 보안 조항).
+"""
+from __future__ import annotations
+
+import os
+import sys
+import time
+import pathlib
+from dataclasses import dataclass, field
+from urllib.parse import quote
+
+import requests
+
+BASE = "https://apis.data.go.kr/B552845"
+MAX_ROWS = 1000          # numOfRows 상한. DATA_SOURCES.md §1
+KEY_FILE = ".datago-key"
+
+
+class ApiKeyMissing(RuntimeError):
+    pass
+
+
+def use_utf8_stdout() -> None:
+    """Windows 콘솔 기본 코드페이지(cp949)에서 한글 출력이 깨지는 것을 막는다.
+
+    심사자가 어느 환경에서 실행하든 같은 화면이 나와야 하므로 스크립트마다
+    맨 앞에서 호출한다.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except Exception:                              # noqa: BLE001
+                pass
+
+
+def load_key() -> str:
+    """환경변수 → 홈 디렉터리 순으로 인증키를 찾는다."""
+    key = os.environ.get("DATAGO_KEY", "").strip()
+    if key:
+        return key
+    path = pathlib.Path.home() / KEY_FILE
+    if path.exists():
+        return path.read_text(encoding="utf-8").strip()
+    raise ApiKeyMissing(
+        f"인증키를 찾지 못했습니다. 환경변수 DATAGO_KEY 를 설정하거나 "
+        f"{path} 에 키를 저장하세요. (키는 저장소에 커밋하지 않습니다)"
+    )
+
+
+@dataclass
+class CallResult:
+    """한 번의 호출 결과. 실패를 예외로 던지지 않고 값으로 돌려준다.
+
+    Agent 루프가 사람 없이 계속 돌아야 하므로, 실패는 기록 대상이지
+    중단 사유가 아니다. 근거: Scaffolding.md §4
+    """
+    op: str
+    ok: bool
+    total: int = 0
+    rows: list[dict] = field(default_factory=list)
+    error: str | None = None
+    attempts: int = 1
+
+
+class Client:
+    def __init__(self, key: str | None = None, timeout: int = 30,
+                 retries: int = 3, backoff: float = 2.0):
+        self.key = key or load_key()
+        self.timeout = timeout
+        self.retries = retries
+        self.backoff = backoff
+        self.session = requests.Session()
+        self.call_count = 0          # 일 트래픽 10,000 한도를 추적한다
+
+    # ── 요청 URL 조립 ────────────────────────────────────────────
+    def _url(self, op: str, cond: dict | None, page: int, rows: int) -> str:
+        parts = [
+            f"serviceKey={quote(self.key, safe='')}",
+            "returnType=JSON",
+            f"pageNo={page}",
+            f"numOfRows={rows}",
+        ]
+        for field_op, value in (cond or {}).items():
+            # 🔴 여기가 핵심이다. cond[...] 로 감싸지 않으면 조건이 조용히 무시된다.
+            parts.append(
+                f"{quote(f'cond[{field_op}]', safe='[]:')}={quote(str(value), safe='')}"
+            )
+        return f"{BASE}/{op}?" + "&".join(parts)
+
+    # ── 단일 페이지 ──────────────────────────────────────────────
+    def call(self, op: str, cond: dict | None = None,
+             page: int = 1, rows: int = MAX_ROWS) -> CallResult:
+        rows = min(rows, MAX_ROWS)
+        url = self._url(op, cond, page, rows)
+        last_error = None
+
+        for attempt in range(1, self.retries + 1):
+            try:
+                self.call_count += 1
+                resp = self.session.get(url, timeout=self.timeout)
+                if resp.status_code != 200:
+                    last_error = f"HTTP {resp.status_code}"
+                    # 승인 직후 403은 게이트웨이 반영 지연이다. 재시도로 풀린다.
+                    time.sleep(self.backoff * attempt)
+                    continue
+                body = resp.json()["response"]["body"]
+                items = body.get("items", {}).get("item", []) or []
+                if isinstance(items, dict):
+                    items = [items]
+                return CallResult(op, True, int(body.get("totalCount", 0)),
+                                  items, attempts=attempt)
+            except Exception as exc:                       # noqa: BLE001
+                last_error = f"{type(exc).__name__}: {exc}"
+                time.sleep(self.backoff * attempt)
+
+        return CallResult(op, False, error=last_error, attempts=self.retries)
+
+    # ── 전량 수집 ────────────────────────────────────────────────
+    def fetch_all(self, op: str, cond: dict | None = None,
+                  max_pages: int = 50) -> CallResult:
+        """`totalCount` 를 다 받을 때까지 페이지를 넘긴다.
+
+        수신 건수가 `totalCount` 와 다르면 그 사실을 error 에 남긴다 —
+        Step 1 통과 기준이 「totalCount 와 수신 건수 일치」다.
+        """
+        first = self.call(op, cond, page=1)
+        if not first.ok:
+            return first
+
+        rows = list(first.rows)
+        total = first.total
+        page = 2
+        while len(rows) < total and page <= max_pages:
+            nxt = self.call(op, cond, page=page)
+            if not nxt.ok:
+                first.error = f"{page}페이지에서 중단: {nxt.error}"
+                break
+            if not nxt.rows:
+                break
+            rows.extend(nxt.rows)
+            page += 1
+
+        first.rows = rows
+        if first.ok and len(rows) != total and first.error is None:
+            first.error = f"건수 불일치: totalCount={total} 수신={len(rows)}"
+        return first
