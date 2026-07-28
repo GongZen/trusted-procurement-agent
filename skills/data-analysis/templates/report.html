@@ -38,9 +38,8 @@
                    border-radius: var(--radius-sm); }
   .fig { font-family: var(--font-mono); font-variant-numeric: tabular-nums;
          letter-spacing: -0.02em; }
-  .eyebrow { font-family: var(--font-mono); font-size: var(--text-xs);
-             letter-spacing: 0.1em; text-transform: uppercase;
-             color: var(--color-ink-2); }
+  .eyebrow { font-family: var(--font-body); font-size: var(--text-xs);
+             letter-spacing: 0.02em; color: var(--color-ink-2); }
 
   .sheet { width: 100%; max-width: 68rem; margin: 0 auto;
            display: flex; flex-direction: column; gap: var(--space-2xl); }
@@ -177,21 +176,21 @@
                       gap: var(--space-2xs) var(--space-sm); }
   /* 🔴 두 조각이 자형이 달라 한 줄이 두 목소리로 읽혔다. 왼쪽에 맞춘다. */
   .chart figcaption .cap,
-  .chart figcaption .seg { font-family: var(--font-mono); font-size: var(--text-xs);
-                           letter-spacing: .06em; color: var(--color-ink-2); }
+  .chart figcaption .seg { font-family: var(--font-body); font-size: var(--text-xs);
+                           letter-spacing: .02em; color: var(--color-ink-2); }
   .chart figcaption .seg { color: var(--color-ink-3); }
   /* 🔴 순위 막대 — 값을 큰 순서로 늘어놓는다.
      꺾은선은 「이렇게 흘러왔다」는 추세로 읽히는데 우리는 추세를 주장하지
      않는다. 우리가 말하는 것은 「6년 중 몇 번째」 하나뿐이므로 그림도
      그것만 그린다. */
-  .chart .bars { display: flex; flex-direction: column; gap: 9px; }
+  .chart .bars { display: flex; flex-direction: column; gap: 11px; }
   .chart .bar { display: grid; grid-template-columns: 2.9rem minmax(0, 1fr) 3.6rem;
                 align-items: center; gap: var(--space-xs); }
   .chart .bar .yr { font-family: var(--font-mono); font-size: var(--text-xs);
                     color: var(--color-ink-3); text-align: right; }
   .chart .bar .val { font-family: var(--font-mono); font-size: var(--text-xs);
                      color: var(--color-ink-3); text-align: right; }
-  .chart .bar .track { height: 21px; background: color-mix(in oklch,
+  .chart .bar .track { height: 24px; background: color-mix(in oklch,
                        var(--color-ink-0) 4%, transparent); border-radius: 2px; }
   .chart .bar .fill { display: block; height: 100%; border-radius: 2px;
                       background: color-mix(in oklch, var(--color-ink-0) 13%, transparent);
@@ -213,8 +212,8 @@
   .chart .lg.note { margin-left: auto; color: var(--color-ink-3); text-align: right; }
   .entry { border: 1px solid var(--color-leaf-line);
            background: var(--color-card);
-           padding: var(--space-xl);
-           display: grid; gap: var(--space-lg);
+           padding: 20px;
+           display: grid; gap: 24px;
            grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
            grid-template-areas:
              "head head"
@@ -223,9 +222,9 @@
              "notes notes"; }
   .entry-head { grid-area: head; }
   .col-l { grid-area: left; display: flex; flex-direction: column;
-           gap: var(--space-lg); }
+           gap: 18px; }
   .col-r { grid-area: right; display: flex; flex-direction: column;
-           gap: var(--space-lg); align-self: start; }
+           gap: 12px; align-self: start; }
   .entry .chain { grid-area: chain; }
   .entry .notes { grid-area: notes; padding-top: var(--space-md);
                   border-top: 1px solid var(--color-leaf-line); }
@@ -234,10 +233,10 @@
                 border-bottom: 1px solid var(--color-leaf-line); }
   .entry-head .rank { font-family: var(--font-mono); font-size: var(--text-xs);
                       color: var(--color-ink-3); }
-  .entry-head .item { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em;
+  .entry-head .item { font-size: 30px; font-weight: 600; letter-spacing: -0.03em;
                       letter-spacing: -0.035em; line-height: 1.1; }
   .entry-head .move { margin-left: auto; display: flex; flex-direction: column;
-                      align-items: flex-end; gap: var(--space-xs);
+                      align-items: flex-end; gap: 16px;
                       line-height: 1.25; }
   .entry-head .movek { font-size: var(--text-xs); color: var(--color-ink-3); }
   /* 🔴 이 자리는 「방향」이 아니라 「순위」다. 증감 색을 쓰면 오름/내림
@@ -246,14 +245,14 @@
   /* 🔴 `.fig` 클래스를 쓰지 않는다. 그 클래스가 mono 를 물고 있어서
      재정의로 덮어도 한 군데만 어긋나면 자형이 섞인다. **클래스를 아예
      따로 둔다** — 가이드 제목에서 겪은 것과 같은 사고다. */
-  .entry-head .move .rankword { font-size: var(--text-lg); font-weight: 700;
+  .entry-head .move .rankword { font-size: 21px; font-weight: 700;
                                 letter-spacing: -0.02em;
                                 color: var(--color-ink-0); }
-  .badge { font-family: var(--font-mono); font-size: var(--text-xs);
-           letter-spacing: 0.06em; color: var(--color-warning);
+  .badge { font-family: var(--font-body); font-size: var(--text-xs);
+           letter-spacing: 0.02em; color: var(--color-warning);
            border: 1px solid currentColor; border-radius: var(--radius-pill);
            padding: 2px 9px; }
-  .say { margin: 0; font-size: var(--text-md); line-height: 1.62;
+  .say { margin: 0; font-size: 13px; line-height: 1.7;
          color: var(--color-ink-1); }
   .say strong { font-weight: inherit; }
 
@@ -264,10 +263,10 @@
           background: var(--color-card); padding: var(--space-md) var(--space-sm);
           display: flex; flex-direction: column; gap: 1px; text-align: center; }
   .step:first-child { border-left: 0; }
-  .step .unitk { font-family: var(--font-mono); font-size: var(--text-xs);
+  .step .unitk { font-family: var(--font-body); font-size: var(--text-xs);
                  color: var(--color-ink-3); }
-  .step .nm  { font-family: var(--font-mono); font-size: var(--text-xs);
-               letter-spacing: 0.1em; color: var(--color-ink-2); }
+  .step .nm  { font-family: var(--font-body); font-size: var(--text-xs);
+               letter-spacing: 0.02em; color: var(--color-ink-2); }
   .step .was { font-size: var(--text-xs); color: var(--color-ink-3); }
   .step .now { font-size: var(--text-lg); font-weight: 600; }
   .step .dt  { font-size: var(--text-lg); font-weight: 600; }
@@ -282,8 +281,10 @@
   .stat { background: var(--color-paper-1); padding: var(--space-lg);
           display: flex; flex-direction: column; gap: var(--space-xs);
           flex: 1; justify-content: center; }
-  .stat .kk { font-size: var(--text-xs); letter-spacing: .1em;
-              color: var(--color-ink-3); }
+  /* 🔴 한글 라벨에 .1em 자간을 주면 글자가 흩어져 다른 글꼴로 보인다.
+     라틴 eyebrow 관습을 한글에 그대로 옮기면 안 된다. */
+  .stat .kk { font-family: var(--font-body); font-size: var(--text-xs);
+              letter-spacing: .02em; color: var(--color-ink-3); }
   .stat .k { display: flex; align-items: center; gap: var(--space-xs);
              font-size: var(--text-lg); color: var(--color-ink-1);
              margin-bottom: var(--space-2xs); }
@@ -300,8 +301,8 @@
   .buy { border-top: 1px solid var(--color-leaf-line);
          padding-top: var(--space-md);
          display: flex; flex-direction: column; gap: var(--space-2xs); }
-  .buy .k { font-size: var(--text-xs); letter-spacing: .04em;
-            color: var(--color-ink-2); }
+  .buy .k { font-family: var(--font-body); font-size: var(--text-xs);
+            letter-spacing: .02em; color: var(--color-ink-2); }
   .buy .row { display: flex; justify-content: space-between; align-items: baseline;
               gap: var(--space-sm); font-size: var(--text-md); }
   .buy .row b { font-weight: 600; }
@@ -314,9 +315,9 @@
           border: 1px solid var(--color-leaf-line);
           background: var(--color-leaf-2);
           padding: var(--space-sm) var(--space-md); }
-  .peak .k { flex: 0 0 100%; font-family: var(--font-mono);
-             font-size: var(--text-xs); letter-spacing: .08em;
-             text-transform: uppercase; color: var(--color-ink-2); }
+  .peak .k { flex: 0 0 100%; font-family: var(--font-body);
+             font-size: var(--text-xs); letter-spacing: .02em;
+             color: var(--color-ink-2); }
   .peak .where { font-size: var(--text-md); color: var(--color-ink-0); }
   .peak .grade { margin-left: var(--space-2xs); font-size: var(--text-xs);
                  color: var(--color-ink-2); }
@@ -333,18 +334,17 @@
   .notes { display: grid; gap: var(--space-2xs) var(--space-md);
            grid-template-columns: max-content minmax(0, 1fr);
            font-size: var(--text-sm); color: var(--color-ink-2); }
-  .notes .k { font-family: var(--font-mono); font-size: var(--text-xs);
-              letter-spacing: 0.08em; color: var(--color-ink-3);
+  .notes .k { font-family: var(--font-body); font-size: var(--text-xs);
+              letter-spacing: 0.02em; color: var(--color-ink-3);
               white-space: nowrap; padding-top: 3px; }
   .notes ul { margin: 0; padding-left: var(--space-md); }
 
   .caveat { border: 1px solid var(--color-leaf-line);
             background: var(--color-leaf);
             padding: var(--space-lg); }
-  .caveat h2 { margin: 0 0 var(--space-xs); font-family: var(--font-mono);
-               font-size: var(--text-xs); letter-spacing: 0.1em;
-               text-transform: uppercase; color: var(--color-ink-2);
-               font-weight: 500; }
+  .caveat h2 { margin: 0 0 var(--space-xs); font-family: var(--font-body);
+               font-size: var(--text-xs); letter-spacing: 0.02em;
+               color: var(--color-ink-2); font-weight: 600; }
   .caveat ul { margin: 0; padding-left: var(--space-md);
                font-size: var(--text-sm); line-height: 1.75;
                color: var(--color-ink-1); }
@@ -359,10 +359,9 @@
   .colophon { border-top: var(--rule-firm); padding-top: var(--space-lg);
               display: flex; flex-direction: column; gap: var(--space-lg);
               font-size: var(--text-sm); color: var(--color-ink-2); }
-  .colophon h2 { margin: 0 0 var(--space-xs); font-family: var(--font-mono);
-                 font-size: var(--text-xs); letter-spacing: 0.1em;
-                 text-transform: uppercase; color: var(--color-ink-1);
-                 font-weight: 500; }
+  .colophon h2 { margin: 0 0 var(--space-xs); font-family: var(--font-body);
+                 font-size: var(--text-xs); letter-spacing: 0.02em;
+                 color: var(--color-ink-1); font-weight: 600; }
   .colophon ul { margin: 0; padding-left: var(--space-md); line-height: 1.7; }
   .scroll { overflow-x: auto; }
   table.audit { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }

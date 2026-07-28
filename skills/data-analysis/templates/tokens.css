@@ -70,7 +70,18 @@
    */
   --font-body: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR",
                system-ui, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  /* 🔴 **한글 산세를 스택 안에 반드시 넣는다.**
+   *
+   *    Geist Mono 에는 한글이 없다. 그래서 「평년 평균 1,761원 → 올해
+   *    2,000원」 같은 줄에서 숫자는 Geist Mono, **「원」과 한글은 generic
+   *    monospace 로 떨어져** 굴림 계열로 렌더됐다. 한 줄 안에 두 글꼴이
+   *    섞여 보이던 것의 정체가 이것이다.
+   *
+   *    글꼴 대체는 **글자 단위**로 일어나므로, 스택 끝에 본문 한글 글꼴을
+   *    두면 숫자는 Geist Mono 를 쓰고 한글은 본문과 같아진다. */
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Consolas,
+               "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR",
+               sans-serif;
 
   /* 🔴 **자형 대신 크기로 다듬는다.**
    *
