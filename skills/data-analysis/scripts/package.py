@@ -25,6 +25,8 @@ import paths                      # noqa: E402
 SKILL = paths.SKILL
 DIST = SKILL.parent.parent / "dist"
 NAME = "trusted-procurement-agent"
+# 🔴 공지의 제출 파일명은 `..._Skill_팀명.zip` 이다. 개인 참가라 성명을 쓴다.
+팀명 = "박현웅"
 
 # 담을 것 — 실행에 필요한 것만. 산출물·상태는 담지 않는다
 포함 = ["SKILL.md", "AGENT.md", "README.md", "skill.md",
@@ -168,7 +170,7 @@ def main() -> None:
 
     a = 만들기(파일들, f"{NAME}-timely.zip", f".pi/skills/{NAME}",
              에이전트도=True)
-    b = 만들기(파일들, "2026_Upstage_BDAI_Skill_CPAI.zip", "skills/data-analysis")
+    b = 만들기(파일들, f"2026_Upstage_BDAI_Skill_{팀명}.zip", "skills/data-analysis")
 
     for z in (a, b):
         print(f"  → {z.relative_to(DIST.parent)}  {z.stat().st_size/1e6:.1f}MB")

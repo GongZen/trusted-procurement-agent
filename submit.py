@@ -31,7 +31,7 @@ DIST = ROOT / "dist"
     ("① 참가신청서",       f"2026_Upstage_BDAI_참가신청서_{이름}.pdf",
      ASSETS / f"2026_Upstage_BDAI_참가신청서_{이름}.pdf"),
     ("② 데이터 분석 Skill", f"2026_Upstage_BDAI_Skill_{이름}.zip",
-     DIST / "2026_Upstage_BDAI_Skill_CPAI.zip"),
+     DIST / f"2026_Upstage_BDAI_Skill_{이름}.zip"),
     ("③ 스크린샷 1",        f"2026_Upstage_BDAI_TimelyAgent_스크린샷1_{이름}.png",
      ASSETS / f"2026_Upstage_BDAI_TimelyAgent_스크린샷1_{이름}.png"),
     ("③ 스크린샷 2",        f"2026_Upstage_BDAI_TimelyAgent_스크린샷2_{이름}.png",
