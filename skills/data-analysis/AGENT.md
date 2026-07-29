@@ -47,6 +47,23 @@ trigger_prompt: |
 
 매일 아침 6시(Asia/Seoul), **사람이 없어도 혼자 돈다.**
 
+## 🔴 이 파일을 **그대로** 쓴다 — 새로 쓰지 않는다
+
+위 frontmatter 의 네 값은 정해져 있다.
+
+    name             trusted-procurement-agent   스킬과 이름을 맞춘다
+    model            solar-open2                 대회가 지정한 모델
+    schedule         0 6 * * *                   매일 아침 6시 (Asia/Seoul)
+    trigger_prompt   파일에 있는 그대로           안전장치가 들어 있다
+
+실제로 이것을 새로 쓴 적이 있다. 그때 이름이 `daily-procurement-briefing`
+으로 바뀌었고, `model` 이 `claude-haiku-4-5` 가 됐고, 스케줄이 비었고,
+**요약 금지·품목명 변경 금지가 통째로 빠져** 품목 이름이 날조된 표가 나왔다.
+
+플랫폼이 요구하는 키가 더 있으면 **그것만 더한다.** 위 네 값은 그대로 둔다.
+
+---
+
 ## 🔴 이 파일을 어디에 두어야 하나
 
 타임리는 **에이전트를 `.pi/agents/<이름>/AGENT.md` 에서 읽는다.**
@@ -55,11 +72,14 @@ trigger_prompt: |
 새로 썼고, 여기 적힌 안전장치(요약 금지·품목명 변경 금지)가 통째로
 빠진 채 돌았다.
 
-스킬을 올린 뒤 **대화로 한 번 복사**해야 한다.
+그래서 **zip 이 두 자리에 같은 파일을 담는다** — 올리면 이미 제자리다.
 
-    .pi/skills/trusted-procurement-agent/AGENT.md 를 그대로 읽어
-    .pi/agents/trusted-procurement-agent/AGENT.md 로 복사하고 저장해 줘.
-    내용을 고치거나 새로 쓰지 마.
+    .pi/skills/trusted-procurement-agent/AGENT.md   (스킬 안 사본)
+    .pi/agents/trusted-procurement-agent/AGENT.md   ← 타임리가 읽는 자리
+
+플랫폼이 스킬 zip 에서 `.pi/agents/` 를 풀지 않는다면, **스킬을 등록하는
+같은 턴에** 위 복사를 한다 — [SKILL.md](SKILL.md) 맨 앞 「이 스킬이 등록될
+때」 절에 그렇게 적어 두었다. 사람이 따로 시키지 않아도 된다.
 
 ## 하는 일
 
