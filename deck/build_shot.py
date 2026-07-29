@@ -77,9 +77,20 @@ def main() -> None:
             raise SystemExit(1)
         uri, 크기 = 만들기(경로, 폭)
         원크기 = 경로.stat().st_size
-        print(f"  {이름:8} {원크기/1024:>6.0f}KB → {크기/1024:.0f}KB (폭 {폭}px)")
-        html = re.sub(re.escape(표시) + r"[^;]*;",
+        w, h = Image.open(경로).size
+        print(f"  {이름:8} {원크기/1024:>6.0f}KB → {크기/1024:.0f}KB "
+              f"(폭 {폭}px · 비율 {w}/{h})")
+        # 🔴 `[^;]*;` 로 자르면 안 된다. data URI 안에 세미콜론이 있다
+        #    (`data:image/jpeg;base64,…`). 그 첫 세미콜론에서 끊겨 **옛
+        #    데이터가 뒤에 남았고** 파일이 실행할 때마다 부풀었다.
+        #    변수는 한 줄에 하나씩이므로 **줄 끝까지** 바꾼다.
+        html = re.sub(re.escape(표시) + r".*", 
                       lambda _: f"{표시} url({uri});", html, count=1)
+        # 🔴 원본 비율을 CSS 에 함께 심는다 — 사진이 잘리지 않게 하려면
+        #    화면 쪽이 비율을 알아야 한다. 사진을 갈면 여기도 같이 바뀐다.
+        ar = f"/* AR:{이름} */"
+        html = re.sub(re.escape(ar) + r".*",
+                      lambda _: f"{ar} {w}/{h};", html, count=1)
 
     HTML.write_text(html, encoding="utf-8")
     print(f"\n→ {HTML.name} 에 심었습니다 ({len(html.encode())/1024:.0f}KB)")
