@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import pathlib
 import subprocess
+import tempfile
 import sys
 import time
 
@@ -58,19 +59,34 @@ def main() -> None:
         목적 = OUT / 이름
         # 🔴 `--no-pdf-header-footer` 가 날짜·URL 을 없앤다.
         #    용지·여백은 문서의 `@page` 가 정한다 — 여기서 겹쳐 주면 어긋난다.
-        명령 = [
-            크롬, "--headless=new", "--disable-gpu", "--no-sandbox",
-            "--no-pdf-header-footer",
-            "--run-all-compositor-stages-before-draw",
-            "--virtual-time-budget=20000",
-            f"--print-to-pdf={목적}",
-            src.resolve().as_uri(),
-        ]
-        t0 = time.time()
-        r = subprocess.run(명령, capture_output=True, text=True, timeout=180)
+        # 🔴 **매번 새 프로필로 띄운다.** 프로필을 공유하면 크롬이 이미
+        #    떠 있는 인스턴스에 붙어 버리고, 그러면 **옛 결과가 그대로
+        #    남는다.** 실제로 그렇게 됐다 — 스크립트가 만든 PDF(410KB)와
+        #    직접 호출한 PDF(352KB)의 크기가 달랐다. 파일은 바뀌었는데
+        #    스크립트만 늘 같은 것을 냈다.
+        #
+        # 🔴 굽기 전에 옛 파일을 지운다. 크롬이 실패해도 옛 파일이 남으면
+        #    「성공했다」로 보인다.
+        if 목적.exists():
+            목적.unlink()
+        with tempfile.TemporaryDirectory() as 프로필:
+            명령 = [
+                크롬, "--headless=new", "--disable-gpu", "--no-sandbox",
+                f"--user-data-dir={프로필}",
+                "--no-first-run", "--no-default-browser-check",
+                "--disable-extensions", "--disable-background-networking",
+                "--no-pdf-header-footer",
+                "--run-all-compositor-stages-before-draw",
+                "--virtual-time-budget=20000",
+                f"--print-to-pdf={목적}",
+                src.resolve().as_uri(),
+            ]
+            t0 = time.time()
+            # text=True 로 받으면 크롬 로그의 한글이 cp949 로 안 풀려 터진다
+            r = subprocess.run(명령, capture_output=True, timeout=180)
         if not 목적.exists() or 목적.stat().st_size < 10_000:
             print(f"  🔴 {이름} 굽기 실패")
-            print((r.stderr or r.stdout or "")[-400:])
+            print((r.stderr or r.stdout or b"").decode("utf-8", "replace")[-400:])
             continue
         print(f"  ⭕ {이름}  {목적.stat().st_size/1e6:.2f}MB  ({time.time()-t0:.1f}초)")
 
