@@ -114,6 +114,17 @@ def 만들기(파일들: list[pathlib.Path], 이름: str, 접두: str,
         #    같은 파일을 그 자리에도 함께 담아 **한 번의 업로드로 끝낸다.**
         if 에이전트도:
             z.write(SKILL / "AGENT.md", f".pi/agents/{NAME}/AGENT.md")
+        else:
+            # 🔴 **공지가 지정한 구조는 `skill.md`(소문자)다.**
+            #    타임리는 `SKILL.md`(대문자)를 찾으므로 파일은 대문자로 둔다.
+            #    윈도우는 대소문자를 구분하지 않아 두 파일을 동시에 둘 수
+            #    없지만, **zip 안에서는 둘 다 담긴다.** 같은 내용을 두 이름으로
+            #    넣어 두 요건을 모두 만족시킨다.
+            #
+            #    🔴 1차 심사가 필수 제출물 여부를 기계적으로 본다.
+            #       파일명 하나가 어긋나면 내용과 무관하게 탈락이다.
+            z.writestr(f"{접두}/skill.md",
+                       (SKILL / "SKILL.md").read_text(encoding="utf-8"))
     return 경로
 
 
