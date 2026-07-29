@@ -26,9 +26,12 @@ from PIL import Image
 DECK = pathlib.Path(__file__).resolve().parent
 ROOT = DECK.parent
 HTML = DECK / "onepager.html"
+# 🔴 파일명이 아니라 **역할**로 잡는다. 스크린샷을 다시 찍을 때마다 이
+#    표만 고치면 되고, 없으면 담기 전에 멈춘다 — 옛 화면이 조용히 남는
+#    일이 실제로 있었다(10종 시절 화면이 포스터에 그대로 박혀 있었다).
 원본들 = [
-    ("대시보드", ROOT / "assets" / "timely_대시보드.png", 1100),
-    ("등록", ROOT / "assets" / "timely_등록.png", 560),
+    ("대시보드", ROOT / "assets" / "발표자료용 스크린샷 2.png", 1100),
+    ("등록", ROOT / "assets" / "발표자료용 스크린샷.png", 620),
 ]
 
 
