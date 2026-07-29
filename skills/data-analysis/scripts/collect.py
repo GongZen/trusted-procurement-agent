@@ -130,23 +130,38 @@ def 산지수집(client: Client, 상위: int, 날짜들: list[str],
         (paths.REFERENCE / "trial_halls.csv").open(encoding="utf-8-sig")))
     rows: list[dict] = []
 
-    # 1) 첫 날짜로 활성 공판장을 찾는다 — 157곳을 병렬로 훑는다
-    첫날 = 날짜들[0]
+    # 1) 거래가 있는 날짜로 활성 공판장을 찾는다 — 157곳을 병렬로 훑는다
+    #
+    # 🔴 **첫 날짜만 훑으면 안 된다.** 산지공판장 자료는 당일 오전에 아직
+    #    올라오지 않는다. 실제로 아침 9시에 돌렸더니 그날 거래가 0/157 로
+    #    나왔고, **선택이 비어 뒷날짜까지 통째로 건너뛰었다** — 전날·전전날
+    #    자료는 멀쩡히 있는데 산지가 0행이 됐다.
+    #
+    #    거래가 나올 때까지 날짜를 넘겨 가며 훑는다. 탐색은 공판장당 1행만
+    #    받으므로 하루 더 훑는 값이 157회로 싸다.
+    활성: list[tuple[str, int]] = []
+    기준날 = 날짜들[0]
+    for 날 in 날짜들:
+        def 탐색(h, _날=날):
+            r = client.call("originTrialHall/dealings",
+                            {"clcln_ymd::EQ": _날, "trhl_cd::EQ": h["공판장코드"]},
+                            rows=1)
+            return (h["공판장코드"], r.total) if (r.ok and r.total) else None
 
-    def 탐색(h):
-        r = client.call("originTrialHall/dealings",
-                        {"clcln_ymd::EQ": 첫날, "trhl_cd::EQ": h["공판장코드"]},
-                        rows=1)
-        return (h["공판장코드"], r.total) if (r.ok and r.total) else None
+        with ThreadPoolExecutor(max_workers=동시호출) as ex:
+            활성 = [x for x in ex.map(탐색, halls) if x]
+        기준날 = 날
+        if 활성:
+            break
+        print(f"    산지 {날} 거래 없음 — 하루 앞으로", flush=True)
 
-    with ThreadPoolExecutor(max_workers=동시호출) as ex:
-        활성 = [x for x in ex.map(탐색, halls) if x]
     활성.sort(key=lambda x: -x[1])
     선택 = [코드 for 코드, _ in 활성[:상위]]
-    print(f"    산지 {첫날} 거래 있는 곳 {len(활성)}/{len(halls)} → 상위 {len(선택)}곳 수집",
+    print(f"    산지 {기준날} 거래 있는 곳 {len(활성)}/{len(halls)} → 상위 {len(선택)}곳 수집",
           flush=True)
     if not 활성:
-        기록["경고"].append(f"산지 {첫날}: 거래 있는 공판장이 없다")
+        기록["실패"].append(
+            f"산지: {날짜들[0]}~{날짜들[-1]} 어느 날짜에도 거래가 없다")
 
     # 2) 선택된 곳만 전 날짜 수집 — 병렬
     def 받기(쌍):

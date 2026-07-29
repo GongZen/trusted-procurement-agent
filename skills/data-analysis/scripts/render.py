@@ -241,7 +241,7 @@ def 카드(p: dict, 순번: int, 전체: int, 대상월: str) -> str:
     if b:
         오른.append(
             '<div class="buy">'
-            f'<span class="k">양 극단 도시 가격 비교 · {esc(b["조건"])}</span>'
+            f'<span class="k">도시 간 도매 가격 차이 · {esc(b["조건"])}</span>'
             f'<span class="row"><b>{esc(b["싼곳"]["지역"])}</b>'
             f'<span class="fig">{b["싼곳"]["값"]:,}원</span></span>'
             f'<span class="row dim">{esc(b["비싼곳"]["지역"])}'
