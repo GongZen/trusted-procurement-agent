@@ -97,12 +97,23 @@ def 키검사(파일들: list[pathlib.Path]) -> list[str]:
     return 걸림
 
 
-def 만들기(파일들: list[pathlib.Path], 이름: str, 접두: str) -> pathlib.Path:
+def 만들기(파일들: list[pathlib.Path], 이름: str, 접두: str,
+         에이전트도: bool = False) -> pathlib.Path:
     DIST.mkdir(parents=True, exist_ok=True)
     경로 = DIST / 이름
     with zipfile.ZipFile(경로, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         for f in 파일들:
             z.write(f, f"{접두}/{f.relative_to(SKILL).as_posix()}")
+        # 🔴 **타임리는 에이전트를 `.pi/agents/<이름>/AGENT.md` 에서 읽는다.**
+        #    스킬 zip 은 `.pi/skills/` 아래에 풀리므로, 거기 있는 AGENT.md 는
+        #    에이전트 정의로 읽히지 않는다. 실제로 그래서 모델이 **자기
+        #    AGENT.md 를 새로 썼고**, 우리가 넣어 둔 안전장치(요약 금지·
+        #    품목명 변경 금지)가 통째로 빠진 채 돌았다.
+        #
+        #    사람이 대화로 복사해 주게 하는 것은 **스킬이 부실하다는 뜻**이다.
+        #    같은 파일을 그 자리에도 함께 담아 **한 번의 업로드로 끝낸다.**
+        if 에이전트도:
+            z.write(SKILL / "AGENT.md", f".pi/agents/{NAME}/AGENT.md")
     return 경로
 
 
@@ -144,7 +155,8 @@ def main() -> None:
         raise SystemExit(1)
     print("  인증키 검사 통과")
 
-    a = 만들기(파일들, f"{NAME}-timely.zip", f".pi/skills/{NAME}")
+    a = 만들기(파일들, f"{NAME}-timely.zip", f".pi/skills/{NAME}",
+             에이전트도=True)
     b = 만들기(파일들, "2026_Upstage_BDAI_Skill_CPAI.zip", "skills/data-analysis")
 
     for z in (a, b):
