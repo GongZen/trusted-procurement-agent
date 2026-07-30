@@ -1,0 +1,38 @@
+MIT License
+
+Copyright (c) 2026 박현웅 (GongZen)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+데이터에 대하여 (Data Notice)
+
+이 저장소가 사용하는 시세 데이터는 공공데이터포털(data.go.kr)의
+농수산식품기업지원센터(B552845) 오픈API에서 받은 것으로,
+해당 API 의 이용허락범위에는 제한이 없다.
+
+`skills/data-analysis/sample-data/` 에 동봉된 파일은 인증키 없이
+실행을 재현하기 위한 수집 스냅샷이며, 위 API 응답을 그대로 담고 있다.
+원본을 다시 받는 절차는 DATA_SOURCES.md 에 있다.
+
+The market price data used in this repository is obtained from the
+Korea Agro-Fisheries & Food Trade Corporation (B552845) Open API,
+provided through the Korean Public Data Portal (data.go.kr),
+which places no restrictions on its use.
