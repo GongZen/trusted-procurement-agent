@@ -1,0 +1,501 @@
+<!-- 예외 보고 한 장. 렌더러가 채우는 자리는 {{...}} 다.
+     🔴 이 파일에는 계산이 없다. 숫자는 전부 analyze.py 가 만든 JSON 에서 온다.
+     자형은 data URI 로 심는다 — 외부 호스트 요청이 없으므로 CSP 와 무관하다. -->
+<style>
+/* Hallmark · macrostructure: Stat-Led · theme: Pastel(차용) · genre: modern-minimal · scheme: light-only
+ * tone: utilitarian · anchor hue: cool-indigo 268° · semantic: 상승 27° / 하락 268°
+ * nav: 상태 필 (N5 파생) · footer: Ft5 Statement
+ * enrichment: none · motion: 라이브 점 1회 primitive
+ * pre-emit critique: P5 H5 E5 S5 R4 V4
+ */
+{{자형}}
+{{토큰}}
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; overflow-x: clip; }
+  html {
+    font-family: var(--font-body);
+    color: var(--color-ink-0);
+    background: var(--color-paper-0);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* 단색 바탕이 아니라 두 겹의 광원. 스크롤해도 고정된다 */
+  body {
+    font-size: var(--text-base); line-height: 1.6;
+    letter-spacing: var(--track-ko);
+    background:
+      radial-gradient(1100px 560px at 14% -8%,
+        color-mix(in oklch, var(--color-accent-tint) 75%, transparent), transparent 62%),
+      radial-gradient(820px 460px at 88% 6%,
+        color-mix(in oklch, var(--color-companion) 55%, transparent), transparent 58%),
+      var(--color-paper-0);
+    background-attachment: fixed;
+    padding: 0 var(--space-md) var(--space-3xl);
+  }
+  ::selection { background: var(--color-mark); color: var(--color-paper-0); }
+  :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px;
+                   border-radius: var(--radius-sm); }
+  .fig { font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+         letter-spacing: -0.02em; }
+  .eyebrow { font-family: var(--font-body); font-size: var(--text-xs);
+             letter-spacing: 0.02em; color: var(--color-ink-2); }
+
+  .sheet { width: 100%; max-width: 68rem; margin: 0 auto;
+           display: flex; flex-direction: column; gap: var(--space-2xl); }
+
+  /* ── 머리. 모눈을 깔고 가운데만 남기고 지운다 ── */
+  .top { position: relative; padding: var(--space-3xl) 0 var(--space-xl);
+         overflow: clip; display: flex; flex-direction: column;
+         gap: var(--space-md); }
+  .top::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(to right,
+        color-mix(in oklch, var(--color-ink-0) 7%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom,
+        color-mix(in oklch, var(--color-ink-0) 7%, transparent) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 78% 66% at 34% 38%, black 26%, transparent 72%);
+    -webkit-mask-image: radial-gradient(ellipse 78% 66% at 34% 38%, black 26%, transparent 72%);
+  }
+  .top > * { position: relative; }
+
+  .status { align-self: flex-start; display: inline-flex; align-items: center;
+            flex-wrap: wrap; gap: var(--space-2xs) var(--space-xs);
+            padding: 7px 16px 7px 12px;
+            border: var(--rule-soft); border-radius: var(--radius-pill);
+            background: color-mix(in oklch, var(--color-paper-0) 74%, transparent);
+            -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+            box-shadow: var(--shadow-pill);
+            font-family: var(--font-mono); font-size: var(--text-xs);
+            letter-spacing: 0.04em; color: var(--color-ink-1); }
+  .status .brand { color: var(--color-ink-0); letter-spacing: .02em; }
+  .status .sep { color: var(--color-ink-3); }
+  .status .dot { width: 7px; height: 7px; border-radius: var(--radius-pill);
+                 background: var(--color-success); flex: none;
+                 animation: live 2000ms var(--ease-in-out) infinite; }
+  @keyframes live {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-success) 55%, transparent); }
+    55%      { box-shadow: 0 0 0 6px color-mix(in oklch, var(--color-success) 0%, transparent); }
+  }
+
+  .hero-num { font-size: var(--text-hero); line-height: 0.9; font-weight: 600;
+              letter-spacing: -0.055em; overflow-wrap: anywhere; min-width: 0; }
+  .hero-num.up   { color: var(--color-up); }
+  .hero-num.calm { color: var(--color-ink-0); }
+  .hero-num .unit { font-size: 0.34em; letter-spacing: -0.01em;
+                    color: var(--color-ink-2); margin-left: 0.12em; }
+  .hero-say { font-size: var(--text-xl); line-height: 1.42; margin: 0;
+              letter-spacing: -0.018em; color: var(--color-ink-1); }
+  .hero-say strong { font-weight: inherit; color: var(--color-ink-0); }
+
+  /* ── 용어. 한 번만 정의하고 접어둔다 ── */
+  .legend { border: 1px solid var(--color-leaf-line);
+            background: var(--color-leaf);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  /* 🔴 `.eyebrow` 를 재정의해 쓰지 않는다. 그 클래스는 mono 를 물고 있어서,
+     한 군데라도 규칙이 어긋나면 조용히 mono 로 떨어진다. **아예 다른
+     클래스**를 쓰고 자형을 직접 적는다 — 상속 사고가 구조적으로 불가능해진다. */
+  .legend > summary .ttl {
+    font: inherit;                       /* 본문과 완전히 같게 — 굵기도 상속 */
+    font-size: var(--text-md); color: var(--color-ink-0); }
+  .legend > summary { cursor: pointer; list-style: none;
+                      padding: var(--space-md) var(--space-lg);
+                      display: flex; align-items: center; gap: var(--space-xs); }
+  .legend > summary::-webkit-details-marker { display: none; }
+  .legend > summary::after { content: "＋"; margin-left: auto;
+                             color: var(--color-ink-2); font-size: var(--text-sm); }
+  .legend[open] > summary::after { content: "－"; }
+  .legend > summary:hover { color: var(--color-accent); }
+  .legend .body { padding: 0 var(--space-lg) var(--space-lg);
+                  border-top: var(--rule-hair); padding-top: var(--space-md); }
+  .legend dl { margin: 0; display: grid; gap: var(--space-sm) var(--space-lg);
+               grid-template-columns: max-content minmax(0, 1fr); }
+  .legend dt { font-weight: 600; font-size: var(--text-sm); white-space: nowrap; }
+  .legend dd { margin: 0; font-size: var(--text-sm); color: var(--color-ink-2);
+               line-height: 1.6; text-align: justify; }
+  .legend dd b { color: var(--color-ink-0); font-weight: 500; }
+  .legend .more { margin-top: var(--space-lg); padding-top: var(--space-md);
+                  border-top: 1px solid var(--color-leaf-line);
+                  display: flex; flex-direction: column; gap: var(--space-2xs);
+                  font-size: var(--text-sm); color: var(--color-ink-2); }
+  .legend .more h3 { margin: var(--space-sm) 0 0; font-size: var(--text-xs);
+                     letter-spacing: .08em; color: var(--color-ink-1);
+                     font-weight: 600; }
+  .legend .more ul { margin: 0; padding-left: var(--space-md); line-height: 1.7; }
+
+  .keys { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-lg);
+          margin-top: var(--space-md); padding-top: var(--space-md);
+          border-top: var(--rule-hair); font-size: var(--text-sm); }
+  .key { display: inline-flex; align-items: center; gap: var(--space-2xs); }
+  .key i { width: 0.7rem; height: 0.7rem; border-radius: 3px; display: inline-block; }
+  .key.up i   { background: var(--color-up); }
+  .key.down i { background: var(--color-down); }
+  .key.flat i { background: var(--color-flat); }
+
+  /* ── 항목. 한 화면에 하나씩, 좌우로 넘긴다 ── */
+  .ledger { display: flex; flex-direction: column; gap: var(--space-md); }
+  /* 카드를 화살표가 좌우에서 감싼다 — 넘기는 동작이 카드 옆에 있어야
+     시선이 아래로 내려갔다 올라오지 않는다 */
+  .deck { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px;
+          align-items: center; gap: var(--space-sm);
+          /* 화살표를 본문 폭 바깥으로 내보내 카드가 다른 블록과 같은 너비가 되게 한다 */
+          margin-inline: calc(-1 * (42px + var(--space-sm))); }
+  .viewport { overflow: hidden; border-radius: var(--radius-lg); }
+  .track { display: flex; transition: transform var(--dur-mid) var(--ease-out); }
+  .track > .entry { flex: 0 0 100%; min-width: 0; }
+
+  .pager { display: flex; align-items: center; justify-content: center;
+           gap: var(--space-sm); }
+  .nav { width: 42px; height: 42px; flex: none; cursor: pointer;
+         border: var(--rule-soft); border-radius: var(--radius-pill);
+         background: color-mix(in oklch, var(--color-paper-0) 76%, transparent);
+         -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+         box-shadow: var(--shadow-pill);
+         color: var(--color-ink-1); font-size: var(--text-md);
+         display: grid; place-items: center;
+         transition: color var(--dur-fast) var(--ease-out),
+                     border-color var(--dur-fast) var(--ease-out); }
+  .nav:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  .nav:disabled { opacity: .35; cursor: default; }
+  .pips { display: flex; gap: var(--space-2xs); }
+  .pip:hover { border-color: var(--color-accent); }
+  .nav-m { display: none; }
+  .pip { width: 7px; height: 7px; padding: 0; cursor: pointer;
+         border: 0; border-radius: var(--radius-pill);
+         background: var(--color-paper-3);
+         transition: background var(--dur-fast) var(--ease-out); }
+  .pip[aria-current="true"] { background: var(--color-mark); }
+  .count { font-size: var(--text-sm); color: var(--color-ink-3); }
+  .count b { font-weight: inherit; color: var(--color-ink-0); }
+
+  /* ── 시계열 그래프 ── */
+  .chart { margin: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
+  .chart figcaption { display: flex; align-items: baseline; flex-wrap: wrap;
+                      gap: var(--space-2xs) var(--space-sm); }
+  /* 🔴 두 조각이 자형이 달라 한 줄이 두 목소리로 읽혔다. 왼쪽에 맞춘다. */
+  .chart figcaption .cap,
+  .chart figcaption .seg { font-family: var(--font-body); font-size: var(--text-xs);
+                           letter-spacing: .02em; color: var(--color-ink-2); }
+  .chart figcaption .seg { color: var(--color-ink-3); }
+  /* 🔴 순위 막대 — 값을 큰 순서로 늘어놓는다.
+     꺾은선은 「이렇게 흘러왔다」는 추세로 읽히는데 우리는 추세를 주장하지
+     않는다. 우리가 말하는 것은 「6년 중 몇 번째」 하나뿐이므로 그림도
+     그것만 그린다. */
+  .chart .bars { display: flex; flex-direction: column; gap: 11px; }
+  .chart .bar { display: grid; grid-template-columns: 2.9rem minmax(0, 1fr) 3.6rem;
+                align-items: center; gap: var(--space-xs); }
+  .chart .bar .yr { font-family: var(--font-mono); font-size: var(--text-xs);
+                    color: var(--color-ink-3); text-align: right; }
+  .chart .bar .val { font-family: var(--font-mono); font-size: var(--text-xs);
+                     color: var(--color-ink-3); text-align: right; }
+  .chart .bar .track { height: 24px; background: color-mix(in oklch,
+                       var(--color-ink-0) 4%, transparent); border-radius: 2px; }
+  .chart .bar .fill { display: block; height: 100%; border-radius: 2px;
+                      background: color-mix(in oklch, var(--color-ink-0) 13%, transparent);
+                      min-width: 3px; }
+  /* 올해만 칠한다 — 눈이 한 번에 찾아간다 */
+  .chart .bar.now .yr,
+  .chart .bar.now .val { color: var(--color-ink-0); font-weight: 600; }
+  /* 🔴 막대를 액센트(파랑)로 칠하면 「감소」 색과 같아 방향으로 오독된다.
+     막대는 방향이 아니라 **순위**를 말하므로 배경 계열의 연두를 쓴다. */
+  .chart .bar.now .fill { background: var(--color-companion); }
+  .chart .legend-line { display: flex; flex-wrap: wrap;
+                        gap: var(--space-2xs) var(--space-md);
+                        font-size: var(--text-xs); color: var(--color-ink-2); }
+  .chart .lg { display: inline-flex; align-items: center; gap: var(--space-2xs); }
+  .chart .lg.pick::before { content: ""; width: 10px; height: 10px;
+                            border-radius: 2px; background: var(--color-companion); }
+  .chart .lg.pick b { color: var(--color-ink-0); font-weight: 600; }
+  /* 「월평균값·막대 시작점」 설명은 범례 오른쪽 여백에 붙인다 */
+  .chart .lg.note { margin-left: auto; color: var(--color-ink-3); text-align: right; }
+  .entry { border: 1px solid var(--color-leaf-line);
+           background: var(--color-card);
+           padding: 20px;
+           display: grid; gap: 24px;
+           grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+           grid-template-areas:
+             "head head"
+             "left right"
+             "chain chain"
+             "notes notes"; }
+  .entry-head { grid-area: head; }
+  .col-l { grid-area: left; display: flex; flex-direction: column;
+           gap: 18px; }
+  .col-r { grid-area: right; display: flex; flex-direction: column;
+           gap: 12px; align-self: start; }
+  .entry .chain { grid-area: chain; }
+  .entry .notes { grid-area: notes; padding-top: var(--space-md);
+                  border-top: 1px solid var(--color-leaf-line); }
+  .entry-head { display: flex; align-items: center; gap: var(--space-sm);
+                flex-wrap: wrap; padding-bottom: var(--space-sm);
+                border-bottom: 1px solid var(--color-leaf-line); }
+  .entry-head .rank { font-family: var(--font-mono); font-size: var(--text-xs);
+                      color: var(--color-ink-3); }
+  .entry-head .item { font-size: 30px; font-weight: 600; letter-spacing: -0.03em;
+                      letter-spacing: -0.035em; line-height: 1.1; }
+  .entry-head .move { margin-left: auto; display: flex; flex-direction: column;
+                      align-items: flex-end; gap: 16px;
+                      line-height: 1.25; }
+  .entry-head .movek { font-size: var(--text-xs); color: var(--color-ink-3); }
+  /* 🔴 이 자리는 「방향」이 아니라 「순위」다. 증감 색을 쓰면 오름/내림
+     신호로 읽힌다. 색을 빼고 굵기만 준다. 자형도 품목명과 같게 —
+     mono 는 한글이 없어 자형이 섞인다. */
+  /* 🔴 `.fig` 클래스를 쓰지 않는다. 그 클래스가 mono 를 물고 있어서
+     재정의로 덮어도 한 군데만 어긋나면 자형이 섞인다. **클래스를 아예
+     따로 둔다** — 가이드 제목에서 겪은 것과 같은 사고다. */
+  .entry-head .move .rankword { font-size: 21px; font-weight: 700;
+                                letter-spacing: -0.02em;
+                                color: var(--color-ink-0); }
+  .badge { font-family: var(--font-body); font-size: var(--text-xs);
+           letter-spacing: 0.02em; color: var(--color-warning);
+           border: 1px solid currentColor; border-radius: var(--radius-pill);
+           padding: 2px 9px; }
+  .say { margin: 0; font-size: 13px; line-height: 1.7; text-align: justify;
+         color: var(--color-ink-1); }
+  .say strong { font-weight: inherit; }
+
+  /* 유통 3단계 */
+  .chain { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+           gap: 0; border: 1px solid var(--color-leaf-line); }
+  .step { border-left: 1px solid var(--color-leaf-line);
+          background: var(--color-card); padding: var(--space-md) var(--space-sm);
+          display: flex; flex-direction: column; gap: 1px; text-align: center; }
+  .step:first-child { border-left: 0; }
+  .step .unitk { font-family: var(--font-body); font-size: var(--text-xs);
+                 color: var(--color-ink-3); }
+  .step .nm  { font-family: var(--font-body); font-size: var(--text-xs);
+               letter-spacing: 0.02em; color: var(--color-ink-2); }
+  .step .was { font-size: var(--text-xs); color: var(--color-ink-3); }
+  .step .now { font-size: var(--text-lg); font-weight: 600; }
+  .step .dt  { font-size: var(--text-lg); font-weight: 600; }
+  .step .rk  { font-size: var(--text-xs); color: var(--color-ink-3);
+               margin-top: 2px; }
+  .step.up   { background: var(--color-up-soft); }
+  .step.up .dt   { color: var(--color-up); }
+  .step.down { background: var(--color-down-soft); }
+  .step.down .dt { color: var(--color-down); }
+  .step.평년수준 .dt { color: var(--color-flat); }
+  .step.자료없음, .step.비교불가 { color: var(--color-ink-3); }
+
+  /* 왼쪽 열의 남는 높이를 이 상자가 가져간다 — 아래가 비면 카드가 기운다 */
+  .stat { background: var(--color-paper-1); padding: var(--space-lg);
+          display: flex; flex-direction: column; gap: var(--space-xs);
+          flex: 1; justify-content: center; }
+  /* 🔴 한글 라벨에 .1em 자간을 주면 글자가 흩어져 다른 글꼴로 보인다.
+     라틴 eyebrow 관습을 한글에 그대로 옮기면 안 된다. */
+  .stat .kk { font-family: var(--font-body); font-size: var(--text-xs);
+              letter-spacing: .02em; color: var(--color-ink-3); }
+  .stat .k { display: flex; align-items: center; gap: var(--space-xs);
+             font-size: var(--text-lg); color: var(--color-ink-1);
+             margin-bottom: var(--space-2xs); }
+  .stat .k::before { content: ""; width: 15px; height: 15px; flex: none;
+                     border-radius: 999px; background: var(--color-companion); }
+  .stat .k .sub2 { font-size: var(--text-xs); color: var(--color-ink-3);
+                   margin-left: var(--space-2xs); }
+  .stat .v { font-size: 2.75rem; line-height: 1.05; letter-spacing: -0.045em;
+             color: var(--color-ink-0); }
+  .stat .v .u { font-size: 0.42em; margin-left: 0.1em; color: var(--color-ink-2); }
+  .stat .sub { font-size: var(--text-md); color: var(--color-ink-2);
+               line-height: 1.9; }
+
+  /* 테두리와 안여백을 두면 이 상자만 24px 안으로 들어가 그래프와
+     좌우 끝이 어긋난다. 구분은 위쪽 실선 하나로 충분하다 */
+  .buy { border-top: 1px solid var(--color-leaf-line);
+         padding-top: var(--space-md);
+         display: flex; flex-direction: column; gap: var(--space-2xs); }
+  .buy .k { font-family: var(--font-body); font-size: var(--text-xs);
+            letter-spacing: .02em; color: var(--color-ink-2); }
+  .buy .row { display: flex; justify-content: space-between; align-items: baseline;
+              gap: var(--space-sm); font-size: var(--text-md); }
+  .buy .row b { font-weight: 600; }
+  .buy .row.dim { color: var(--color-ink-2); font-size: var(--text-sm); }
+  .buy .gap { font-size: var(--text-xs); color: var(--color-ink-3);
+              padding-top: var(--space-2xs); }
+
+  .peak { display: flex; align-items: baseline; flex-wrap: wrap;
+          gap: var(--space-2xs) var(--space-sm);
+          border: 1px solid var(--color-leaf-line);
+          background: var(--color-leaf-2);
+          padding: var(--space-sm) var(--space-md); }
+  .peak .k { flex: 0 0 100%; font-family: var(--font-body);
+             font-size: var(--text-xs); letter-spacing: .02em;
+             color: var(--color-ink-2); }
+  .peak .where { font-size: var(--text-md); color: var(--color-ink-0); }
+  .peak .grade { margin-left: var(--space-2xs); font-size: var(--text-xs);
+                 color: var(--color-ink-2); }
+  .peak .v { font-size: var(--text-sm); color: var(--color-ink-1); }
+  .peak .d { margin-left: auto; font-size: var(--text-lg);
+             color: var(--color-up); }
+
+  .read { margin: var(--space-md) 0 0; font-size: var(--text-base);
+          line-height: 1.95; color: var(--color-ink-1);
+          padding-top: var(--space-md);
+          border-top: 1px solid var(--color-leaf-line); }
+  .read strong { font-weight: inherit; }
+
+  .notes { display: grid; gap: var(--space-2xs) var(--space-md);
+           grid-template-columns: max-content minmax(0, 1fr);
+           font-size: var(--text-sm); color: var(--color-ink-2); }
+  .notes .k { font-family: var(--font-body); font-size: var(--text-xs);
+              letter-spacing: 0.02em; color: var(--color-ink-3);
+              white-space: nowrap; padding-top: 3px; }
+  .notes ul { margin: 0; padding-left: var(--space-md); }
+
+  .caveat { border: 1px solid var(--color-leaf-line);
+            background: var(--color-leaf);
+            padding: var(--space-lg); }
+  .caveat h2 { margin: 0 0 var(--space-xs); font-family: var(--font-body);
+               font-size: var(--text-xs); letter-spacing: 0.02em;
+               color: var(--color-ink-2); font-weight: 600; }
+  .caveat ul { margin: 0; padding-left: var(--space-md);
+               font-size: var(--text-sm); line-height: 1.75;
+               color: var(--color-ink-1); }
+  .caveat strong { font-weight: inherit; }
+
+  .quiet { text-align: center; padding: var(--space-3xl) var(--space-lg);
+           border: var(--rule-hair); border-radius: var(--radius-lg);
+           background: color-mix(in oklch, var(--color-paper-1) 70%, transparent);
+           color: var(--color-ink-2); }
+
+  /* ── 판권 ── */
+  .colophon { border-top: var(--rule-firm); padding-top: var(--space-lg);
+              display: flex; flex-direction: column; gap: var(--space-lg);
+              font-size: var(--text-sm); color: var(--color-ink-2); }
+  .colophon h2 { margin: 0 0 var(--space-xs); font-family: var(--font-body);
+                 font-size: var(--text-xs); letter-spacing: 0.02em;
+                 color: var(--color-ink-1); font-weight: 600; }
+  .colophon ul { margin: 0; padding-left: var(--space-md); line-height: 1.7; }
+  .scroll { overflow-x: auto; }
+  table.audit { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+  table.audit td { border-top: var(--rule-hair);
+                   padding: var(--space-xs); vertical-align: top; }
+  table.audit td:first-child { width: 1%; white-space: nowrap;
+                               color: var(--color-ink-1); font-weight: 600; }
+
+  @media (max-width: 56rem) {
+    .entry { grid-template-columns: minmax(0, 1fr);
+             grid-template-areas: "head" "left" "right" "chain"; }
+  }
+  @media (max-width: 40rem) {
+    .deck { grid-template-columns: minmax(0, 1fr); }
+    .deck .nav { display: none; }
+    .pager .nav-m { display: grid; }
+  }
+  @media (max-width: 34rem) {
+    .chain { grid-template-columns: minmax(0, 1fr); }
+    .legend dl, .notes { grid-template-columns: minmax(0, 1fr); }
+    .legend dt { margin-top: var(--space-xs); }
+    .entry-head .move { margin-left: 0; width: 100%; }
+    .top { padding-top: var(--space-2xl); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="sheet">
+  <header class="top">
+    <div class="status"><span class="dot"></span>
+      <span class="brand">Trusted Procurement Agent</span>
+      <span class="sep">·</span>
+      <span>생성일시 {{생성시각}}</span>
+      <span class="sep">·</span>
+      <span>기준일 {{기준일}}</span></div>
+    <div class="hero-num fig {{머리색}}">{{머리숫자}}</div>
+    <p class="hero-say">{{오늘한줄}}</p>
+  </header>
+
+  <details class="legend">
+    <summary><span class="ttl">가이드 (용어 설명)</span></summary>
+    <div class="body">
+      <dl>
+        <dt>평년</dt>
+        <dd>최근 <b>5년의 같은 달</b> 데이터입니다.
+            올해가 평년에서 어느 수준인지 측정합니다.</dd>
+        <dt>조사 도시</dt>
+        <dd>농산물유통정보가 <b>매일 시세를 조사하는 전국 24개 도시 + 온라인</b>입니다.
+            서울·부산·대구·인천·광주·대전·울산·세종·수원·성남·고양·용인·의정부·
+            춘천·강릉·청주·천안·전주·순천·포항·안동·창원·김해·제주</dd>
+        <dt>고르는 기준</dt>
+        <dd>취급 품목 중 <b>산지·도매·소매 중 한 단계라도 평년보다 높은</b>
+            품목만 올립니다.</dd>
+        <dt>측정 순서</dt>
+        <dd><b>도매 → 산지 → 소매</b> 순입니다. 어느 단계가 가장 높은지에
+            따라 자리가 정해집니다. 도매를 맨 앞에 두는 이유는 기업의 계약
+            금액에 가장 큰 영향을 미치기 때문입니다. 산지 낙찰가나 소비자
+            판매가는 계약 단가와 직접적으로 이어지지 않는다고 보았습니다.
+            그러나 이러한 정보도 담당자가 고려할 수 있습니다. 이 순서는
+            판정이 아니라 보여주는 차례입니다. 무엇이 올라올지는 순서와
+            무관하게 「고르는 기준」이 정합니다.</dd>
+        <dt>높음·낮음</dt>
+        <dd>평년과 비교하여 올해가 몇 번째인지 정합니다.
+            1번째면 「가장 높음」, 마지막이면 「가장 낮음」입니다.</dd>
+        <dt>판정하지 않은 것</dt>
+        <dd>{{판정제외}}</dd>
+        <dt>유통 3단계</dt>
+        <dd><b>산지</b>는 전국 산지공판장 낙찰가, <b>도매</b>는 도매시장 중도매인 가격,
+            <b>소매</b>는 소비자 판매가입니다. 각 단계는 자기 평년과만 비교합니다.
+            단위가 달라 서로 빼거나 나누지 않습니다.</dd>
+      </dl>
+      <div class="more">
+        <h3>모든 품목 공통 사항</h3>
+        <ul>{{공통유의}}</ul>
+        <h3>이 보고서가 확인할 수 없는 것</h3>
+        <ul>{{한계들}}</ul>
+        <h3>근거</h3>
+        <div class="scroll"><table class="audit">{{근거표}}</table></div>
+      </div>
+      <div class="keys">
+        <span class="key up"><i></i>평년보다 높음</span>
+        <span class="key down"><i></i>평년보다 낮음</span>
+        <span class="key flat"><i></i>평년 수준</span>
+      </div>
+    </div>
+  </details>
+
+  {{항목들}}
+
+
+</div>
+
+<script>
+/* 좌우 넘김. 스크롤이 아니라 transform 으로 옮긴다 —
+   레이아웃 속성을 건드리지 않아야 프레임이 떨어지지 않는다. */
+(function () {
+  var track = document.querySelector(".track");
+  if (!track) return;
+  var total = track.children.length;
+  var at = 0;
+  var pips = Array.prototype.slice.call(document.querySelectorAll(".pip"));
+  var prevs = Array.prototype.slice.call(document.querySelectorAll(".nav.prev"));
+  var nexts = Array.prototype.slice.call(document.querySelectorAll(".nav.next"));
+  var count = document.querySelector(".count b");
+
+  function draw() {
+    track.style.transform = "translateX(" + (-at * 100) + "%)";
+    pips.forEach(function (b, i) {
+      b.setAttribute("aria-current", i === at ? "true" : "false");
+    });
+    if (count) count.textContent = at + 1;
+    prevs.forEach(function (b) { b.disabled = at === 0; });
+    nexts.forEach(function (b) { b.disabled = at === total - 1; });
+  }
+  function go(i) { at = Math.max(0, Math.min(total - 1, i)); draw(); }
+
+  prevs.concat(nexts).forEach(function (b) {
+    b.addEventListener("click", function () {
+      go(at + parseInt(b.dataset.step, 10));
+    });
+  });
+  pips.forEach(function (b) {
+    b.addEventListener("click", function () { go(parseInt(b.dataset.go, 10)); });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") go(at - 1);
+    if (e.key === "ArrowRight") go(at + 1);
+  });
+  draw();
+})();
+</script>

@@ -22,6 +22,10 @@ logs/
 # ─── 실행 환경 ────────────────────────────────────────
 __pycache__/
 *.py[cod]
+
+# 반쪽 수집본·원자 교체용 임시 파일 — 온전한 스냅샷과 섞이면 안 된다
+*.PARTIAL.json
+*.tmp
 .venv/
 venv/
 .env
@@ -35,3 +39,7 @@ venv/
 .mafra-key
 secrets*
 credentials*
+dist/
+.claude/
+.agents/
+skills-lock.json

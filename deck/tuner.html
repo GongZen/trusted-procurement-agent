@@ -1,0 +1,841 @@
+<title>대시보드 레이아웃 조절기</title>
+<style>
+:root { --ink:#3d3e42; --mid:#6e7075; --soft:#9a9ca2; --rule:#c2c4ca;
+        --blue:#6b84f5; --deep:#4a63d8; --panel:#ffffff; }
+* { box-sizing:border-box; }
+body { margin:0; background:#eceef2; color:var(--ink);
+       font-family:"Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+       display:grid; grid-template-columns: 1fr 300px; height:100vh; }
+#stage { position:relative; overflow:hidden; }
+iframe { width:100%; height:100%; border:0; background:#fff; display:block; }
+
+/* 좌우 비율 손잡이 — 카드 가운데를 끌어 옮긴다 */
+#grip { position:absolute; top:0; bottom:0; width:14px; cursor:col-resize;
+        z-index:5; display:flex; align-items:center; justify-content:center; }
+#grip::before { content:""; width:3px; height:64px; border-radius:2px;
+                background:var(--blue); opacity:.55; }
+#grip:hover::before, #grip.on::before { opacity:1; }
+#griplab { position:absolute; top:12px; left:50%; transform:translateX(-50%);
+           background:var(--deep); color:#fff; font-size:11px; padding:3px 9px;
+           border-radius:3px; white-space:nowrap; z-index:6; }
+
+aside { background:var(--panel); border-left:1px solid var(--rule);
+        display:flex; flex-direction:column; min-height:0; }
+aside h1 { margin:0; padding:14px 16px; font-size:15px;
+           border-bottom:1px solid var(--rule); }
+aside h1 small { display:block; font-weight:400; font-size:11.5px;
+                 color:var(--soft); margin-top:3px; line-height:1.5; }
+#knobs { flex:1; overflow-y:auto; padding:8px 16px 16px; }
+.k { padding:9px 0; border-bottom:1px solid #eef0f3; }
+.k .t { display:flex; justify-content:space-between; align-items:baseline;
+        font-size:12.5px; margin-bottom:5px; }
+.k .t b { font-weight:600; }
+.k .t output { font-variant-numeric:tabular-nums; color:var(--deep);
+               font-weight:600; }
+.k input[type=range] { width:100%; accent-color:var(--blue); }
+.k .sel { font-size:10.5px; color:var(--soft); font-family:Consolas,monospace; }
+footer { border-top:1px solid var(--rule); padding:12px 16px;
+         display:flex; flex-direction:column; gap:8px; }
+#outbox { width:100%; height:120px; resize:vertical; font-size:11.5px;
+          line-height:1.6; font-family:Consolas,monospace; color:#2f3136;
+          background:#f6f7f9; border:1px solid var(--rule); padding:8px;
+          white-space:pre; overflow:auto; }
+#outbox:focus { outline:2px solid var(--blue); outline-offset:-1px; }
+button { font:inherit; font-size:13px; padding:8px 14px; cursor:pointer;
+         border:1px solid var(--rule); background:#fff; }
+button.go { background:var(--blue); border-color:var(--blue); color:#fff; }
+button.go:hover { background:var(--deep); }
+button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+#msg { font-size:11.5px; color:#2f8f5b; min-height:1.2em; }
+</style>
+
+<div id="stage">
+  <iframe id="v" title="대시보드 미리보기"></iframe>
+  <div id="grip" hidden><span id="griplab" hidden></span></div>
+</div>
+
+<aside>
+  <h1>레이아웃 조절기
+    <small>막대를 움직이면 왼쪽 화면이 바로 바뀝니다.
+      좌우 칸 비율은 화면 가운데 <b>파란 손잡이를 끌어서</b> 맞추세요.
+      값은 아래 상자에 바로 쌓입니다. 그대로 채팅에 붙여 주세요.</small></h1>
+  <div id="knobs"></div>
+  <footer>
+    <textarea id="outbox" readonly spellcheck="false"
+              aria-label="맞춘 값"></textarea>
+    <div style="display:flex;gap:8px">
+      <button class="go" id="copy" style="flex:1">전체 선택 + 복사</button>
+      <button id="reset">처음으로</button>
+    </div>
+    <div id="msg"></div>
+  </footer>
+</aside>
+
+<script id="doc" type="text/plain"><!-- 예외 보고 한 장. 렌더러가 채우는 자리는 {{...}} 다.
+     🔴 이 파일에는 계산이 없다. 숫자는 전부 analyze.py 가 만든 JSON 에서 온다.
+     자형은 data URI 로 심는다 — 외부 호스트 요청이 없으므로 CSP 와 무관하다. -->
+<style>
+/* Hallmark · macrostructure: Stat-Led · theme: Pastel(차용) · genre: modern-minimal · scheme: light-only
+ * tone: utilitarian · anchor hue: cool-indigo 268° · semantic: 상승 27° / 하락 268°
+ * nav: 상태 필 (N5 파생) · footer: Ft5 Statement
+ * enrichment: none · motion: 라이브 점 1회 primitive
+ * pre-emit critique: P5 H5 E5 S5 R4 V4
+ */
+/* 숫자용 자형 — Geist Mono 라틴 서브셋을 data URI 로 심는다.
+ *
+ * 🔴 처음에 「CSP 가 웹폰트를 막으니 시스템 스택뿐」이라고 판단했는데 틀렸다.
+ *    막히는 것은 외부 호스트 요청이지 폰트 자체가 아니다. 파일을 본문에 심으면
+ *    요청이 없으므로 CSP 와 무관하게 렌더링된다.
+ *
+ *    한글은 여전히 시스템 폰트를 쓴다 — 한글 웹폰트는 서브셋해도 수백 KB다.
+ *    대신 **이 산출물에서 가장 중요한 것이 숫자**이므로 숫자에 자형을 준다.
+ *
+ * 출처: Geist Mono (Vercel) · SIL Open Font License 1.1 · 라틴 서브셋
+ */
+@font-face {
+  font-family: "Geist Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(data:font/woff2;base64,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) format("woff2");
+  unicode-range: U+0000-00FF, U+2013-2014, U+2018-201A, U+201C-201E,
+                 U+2022, U+2030, U+2032-2033, U+2212, U+2192;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(data:font/woff2;base64,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) format("woff2");
+  unicode-range: U+0000-00FF, U+2013-2014, U+2018-201A, U+201C-201E,
+                 U+2022, U+2030, U+2032-2033, U+2212, U+2192;
+}
+
+/* Hallmark · tokens · theme: Pastel(차용) · genre: modern-minimal
+ * paper-band: light · display-style: system-sans + Geist Mono figures
+ * accent-hue: cool-indigo 268° · semantic: 상승 27° / 하락 268°
+ *
+ * 🔴 **라이트 전용으로 확정한다.** 다크 모드를 함께 만들었더니 뷰어 테마에서
+ *    중요한 글자가 배경에 묻혔다. 이 산출물은 매일 아침 3초 안에 읽는
+ *    업무 문서라 가시성이 취향보다 우선한다. 그래서 뷰어가 다크를 요청해도
+ *    라이트를 유지한다 — 누락이 아니라 결정이다.
+ *
+ * 종이·잉크·액센트 값은 usehallmark.com/examples/tally 의 토큰을 그대로 쓴다.
+ * 258° 축 위에 4단 종이 + 4단 잉크, 268° 인디고 액센트.
+ */
+:root, :root[data-theme="dark"], :root[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── Tally 토큰 그대로 ── */
+  --color-paper-0: oklch(98.4% 0.005 258);
+  --color-paper-1: oklch(96.2% 0.010 258);
+  --color-paper-2: oklch(93.0% 0.015 258);
+  --color-paper-3: oklch(89.0% 0.020 258);
+  --color-ink-0:   oklch(18.0% 0.030 258);
+  --color-ink-1:   oklch(35.0% 0.025 258);
+  --color-ink-2:   oklch(52.0% 0.018 258);
+  --color-ink-3:   oklch(70.0% 0.012 258);
+
+  --color-accent:      oklch(54.0% 0.220 268);
+  --color-accent-soft: oklch(72.0% 0.140 268);
+  --color-accent-tint: oklch(94.0% 0.040 268);
+  --color-companion:   oklch(82.0% 0.180 130);
+  --color-warning:     oklch(74.0% 0.180 50);
+  --color-success:     oklch(68.0% 0.150 145);
+  --color-focus:       oklch(46.0% 0.220 268);
+
+  /* ── 🔴 증감의 적·청 배색을 걷어냈다.
+       색이 많아지자 「무엇이 중요한가」가 아니라 「무슨 색인가」를 먼저
+       읽게 됐다. 방향은 부호(+/−)가 이미 말한다. 그래서 판정 3색을
+       전부 배경과 같은 연두 계열로 눕히고, 위계는 굵기·자리로만 만든다.
+       나중에 필요해지면 이 한 곳만 되돌리면 된다 ── */
+  /* 면은 전부 흰 톤이다. 연두는 **그래프 아래 그라데이션 한 곳**에만 남긴다 —
+     색이 한 군데만 있으면 그 한 군데가 곧 시선의 목적지가 된다 */
+  --color-leaf:      var(--color-card);
+  --color-leaf-2:    var(--color-paper-1);
+  --color-leaf-line: color-mix(in oklch, var(--color-ink-0) 11%, transparent);
+  --color-card:      oklch(100% 0 0);
+  /* 🔴 증감 색을 되살린다 — 전에 걷어냈던 이유(색이 많아 「무엇이 중요한가」
+     보다 「무슨 색인가」를 먼저 읽게 됨)는 **채도로 해결한다.** 신호등처럼
+     쨍한 적·청이 아니라 잉크에 가까운 낮은 채도로 둔다. 방향은 부호가
+     이미 말하고, 색은 그것을 거들 뿐이다. */
+  --color-up:        oklch(52.0% 0.150 25);    /* 오름 — 낮은 채도의 붉은 잉크 */
+  --color-up-soft:   oklch(96.5% 0.020 25);
+  --color-down:      oklch(52.0% 0.115 250);   /* 내림 — 낮은 채도의 푸른 잉크 */
+  --color-down-soft: oklch(96.5% 0.016 250);
+  --color-flat:      oklch(52.0% 0.018 258);
+  /* 강조 요소(넘김 버튼·점·선택)는 증감 색을 쓰지 않는다 — 방향을 뜻하지
+     않는 자리에 방향 색이 있으면 그것도 신호로 읽힌다 */
+  --color-mark:      oklch(30.0% 0.020 258);
+
+  /* 🔴 한글은 OS 기본 산세로 통일한다.
+   *
+   *    이전 스택 맨 앞에 Pretendard 를 뒀는데 그것은 시스템 폰트가 아니다.
+   *    설치된 기기에서만 적용되므로 심사자 화면과 내 화면이 달라진다.
+   *    깨지지는 않지만 **같게 나온다는 보장이 없다.**
+   *
+   *    그래서 각 OS 의 기본 산세만 남기고 마지막을 generic `sans-serif` 로 닫는다.
+   *    Windows 맑은 고딕 · macOS 애플 SD 산돌고딕 · Linux Noto Sans KR.
+   *    자형은 조금씩 다르지만 **어느 환경에서도 산세로 렌더링된다.**
+   *
+   *    숫자만 Geist Mono 를 본문에 심어 어디서나 똑같이 나오게 했다 —
+   *    이 산출물에서 환경에 따라 달라지면 안 되는 것은 숫자다.
+   */
+  --font-body: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR",
+               system-ui, sans-serif;
+  /* 🔴 **한글 산세를 스택 안에 반드시 넣는다.**
+   *
+   *    Geist Mono 에는 한글이 없다. 그래서 「평년 평균 1,761원 → 올해
+   *    2,000원」 같은 줄에서 숫자는 Geist Mono, **「원」과 한글은 generic
+   *    monospace 로 떨어져** 굴림 계열로 렌더됐다. 한 줄 안에 두 글꼴이
+   *    섞여 보이던 것의 정체가 이것이다.
+   *
+   *    글꼴 대체는 **글자 단위**로 일어나므로, 스택 끝에 본문 한글 글꼴을
+   *    두면 숫자는 Geist Mono 를 쓰고 한글은 본문과 같아진다. */
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Consolas,
+               "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR",
+               sans-serif;
+
+  /* 🔴 **자형 대신 크기로 다듬는다.**
+   *
+   *    한글 웹폰트를 심어 어디서나 같은 자형을 내는 길은 막혀 있다 —
+   *    화면에 나올 수 있는 글자만 추려도 106KB(본문 삽입 142KB)이고,
+   *    타임리 create_artifact 한도가 200KB, 본문이 이미 48KB 다.
+   *    (실측: 한글 전체 2,341KB · 상용 2,350자 460KB)
+   *
+   *    맑은 고딕은 **클수록 거칠어 보인다** — 힌팅이 작은 크기에 맞춰져
+   *    있어서다. 그래서 본문을 한 단 내리고 자간을 살짝 조인다.
+   *    위계는 크기 차이가 아니라 **굵기와 자리**가 이미 만들고 있다.
+   *
+   *    품목을 넓힌 뒤 용량이 허락하면 그때 자형을 심는다. */
+  --text-xs:   0.6875rem;   /* 12 → 11 */
+  --text-sm:   0.8125rem;   /* 14 → 13 */
+  --text-base: 0.9375rem;   /* 16 → 15 */
+  --text-md:   1rem;        /* 17 → 16 */
+  --text-lg:   1.125rem;    /* 20 → 18 */
+  --text-xl:   1.4375rem;   /* 26 → 23 */
+  --text-2xl:  2rem;        /* 36 → 32 */
+  --text-hero: clamp(2.75rem, 10vw, 4.75rem);
+  /* 한글은 자간이 조금 좁아야 덩어리로 읽힌다 */
+  --track-ko: -0.008em;
+
+  --space-2xs: 0.25rem; --space-xs: 0.5rem;  --space-sm: 0.75rem;
+  --space-md:  1rem;    --space-lg: 1.5rem;  --space-xl: 2rem;
+  --space-2xl: 3rem;    --space-3xl: 4.5rem;
+
+  /* 각진 형태로 간다 — 표는 모서리를 굴리지 않는다 */
+  --radius-sm: 0;   --radius-md: 0;
+  --radius-lg: 0;   --radius-pill: 999px;
+
+  --rule-hair: 1px solid color-mix(in oklch, var(--color-ink-0) 8%, transparent);
+  --rule-soft: 1px solid color-mix(in oklch, var(--color-ink-0) 14%, transparent);
+  --rule-firm: 1px solid color-mix(in oklch, var(--color-ink-0) 28%, transparent);
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+                 0 10px 30px -18px rgba(20, 30, 80, 0.22);
+  --shadow-pill: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+                 0 8px 30px -12px rgba(20, 30, 80, 0.18);
+
+  --ease-out:    cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-mid:  240ms;
+}
+
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; overflow-x: clip; }
+  html {
+    font-family: var(--font-body);
+    color: var(--color-ink-0);
+    background: var(--color-paper-0);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* 단색 바탕이 아니라 두 겹의 광원. 스크롤해도 고정된다 */
+  body {
+    font-size: var(--text-base); line-height: 1.6;
+    letter-spacing: var(--track-ko);
+    background:
+      radial-gradient(1100px 560px at 14% -8%,
+        color-mix(in oklch, var(--color-accent-tint) 75%, transparent), transparent 62%),
+      radial-gradient(820px 460px at 88% 6%,
+        color-mix(in oklch, var(--color-companion) 55%, transparent), transparent 58%),
+      var(--color-paper-0);
+    background-attachment: fixed;
+    padding: 0 var(--space-md) var(--space-3xl);
+  }
+  ::selection { background: var(--color-mark); color: var(--color-paper-0); }
+  :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px;
+                   border-radius: var(--radius-sm); }
+  .fig { font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+         letter-spacing: -0.02em; }
+  .eyebrow { font-family: var(--font-body); font-size: var(--text-xs);
+             letter-spacing: 0.02em; color: var(--color-ink-2); }
+
+  .sheet { width: 100%; max-width: 68rem; margin: 0 auto;
+           display: flex; flex-direction: column; gap: var(--space-2xl); }
+
+  /* ── 머리. 모눈을 깔고 가운데만 남기고 지운다 ── */
+  .top { position: relative; padding: var(--space-3xl) 0 var(--space-xl);
+         overflow: clip; display: flex; flex-direction: column;
+         gap: var(--space-md); }
+  .top::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(to right,
+        color-mix(in oklch, var(--color-ink-0) 7%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom,
+        color-mix(in oklch, var(--color-ink-0) 7%, transparent) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 78% 66% at 34% 38%, black 26%, transparent 72%);
+    -webkit-mask-image: radial-gradient(ellipse 78% 66% at 34% 38%, black 26%, transparent 72%);
+  }
+  .top > * { position: relative; }
+
+  .status { align-self: flex-start; display: inline-flex; align-items: center;
+            flex-wrap: wrap; gap: var(--space-2xs) var(--space-xs);
+            padding: 7px 16px 7px 12px;
+            border: var(--rule-soft); border-radius: var(--radius-pill);
+            background: color-mix(in oklch, var(--color-paper-0) 74%, transparent);
+            -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+            box-shadow: var(--shadow-pill);
+            font-family: var(--font-mono); font-size: var(--text-xs);
+            letter-spacing: 0.04em; color: var(--color-ink-1); }
+  .status .brand { color: var(--color-ink-0); letter-spacing: .02em; }
+  .status .sep { color: var(--color-ink-3); }
+  .status .dot { width: 7px; height: 7px; border-radius: var(--radius-pill);
+                 background: var(--color-success); flex: none;
+                 animation: live 2000ms var(--ease-in-out) infinite; }
+  @keyframes live {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-success) 55%, transparent); }
+    55%      { box-shadow: 0 0 0 6px color-mix(in oklch, var(--color-success) 0%, transparent); }
+  }
+
+  .hero-num { font-size: var(--text-hero); line-height: 0.9; font-weight: 600;
+              letter-spacing: -0.055em; overflow-wrap: anywhere; min-width: 0; }
+  .hero-num.up   { color: var(--color-up); }
+  .hero-num.calm { color: var(--color-ink-0); }
+  .hero-num .unit { font-size: 0.34em; letter-spacing: -0.01em;
+                    color: var(--color-ink-2); margin-left: 0.12em; }
+  .hero-say { font-size: var(--text-xl); line-height: 1.42; margin: 0;
+              letter-spacing: -0.018em; color: var(--color-ink-1); }
+  .hero-say strong { font-weight: inherit; color: var(--color-ink-0); }
+
+  /* ── 용어. 한 번만 정의하고 접어둔다 ── */
+  .legend { border: 1px solid var(--color-leaf-line);
+            background: var(--color-leaf);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  /* 🔴 `.eyebrow` 를 재정의해 쓰지 않는다. 그 클래스는 mono 를 물고 있어서,
+     한 군데라도 규칙이 어긋나면 조용히 mono 로 떨어진다. **아예 다른
+     클래스**를 쓰고 자형을 직접 적는다 — 상속 사고가 구조적으로 불가능해진다. */
+  .legend > summary .ttl {
+    font: inherit;                       /* 본문과 완전히 같게 — 굵기도 상속 */
+    font-size: var(--text-md); color: var(--color-ink-0); }
+  .legend > summary { cursor: pointer; list-style: none;
+                      padding: var(--space-md) var(--space-lg);
+                      display: flex; align-items: center; gap: var(--space-xs); }
+  .legend > summary::-webkit-details-marker { display: none; }
+  .legend > summary::after { content: "＋"; margin-left: auto;
+                             color: var(--color-ink-2); font-size: var(--text-sm); }
+  .legend[open] > summary::after { content: "－"; }
+  .legend > summary:hover { color: var(--color-accent); }
+  .legend .body { padding: 0 var(--space-lg) var(--space-lg);
+                  border-top: var(--rule-hair); padding-top: var(--space-md); }
+  .legend dl { margin: 0; display: grid; gap: var(--space-sm) var(--space-lg);
+               grid-template-columns: max-content minmax(0, 1fr); }
+  .legend dt { font-weight: 600; font-size: var(--text-sm); white-space: nowrap; }
+  .legend dd { margin: 0; font-size: var(--text-sm); color: var(--color-ink-2);
+               line-height: 1.6; text-align: justify; }
+  .legend dd b { color: var(--color-ink-0); font-weight: 500; }
+  .legend .more { margin-top: var(--space-lg); padding-top: var(--space-md);
+                  border-top: 1px solid var(--color-leaf-line);
+                  display: flex; flex-direction: column; gap: var(--space-2xs);
+                  font-size: var(--text-sm); color: var(--color-ink-2); }
+  .legend .more h3 { margin: var(--space-sm) 0 0; font-size: var(--text-xs);
+                     letter-spacing: .08em; color: var(--color-ink-1);
+                     font-weight: 600; }
+  .legend .more ul { margin: 0; padding-left: var(--space-md); line-height: 1.7; }
+
+  .keys { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-lg);
+          margin-top: var(--space-md); padding-top: var(--space-md);
+          border-top: var(--rule-hair); font-size: var(--text-sm); }
+  .key { display: inline-flex; align-items: center; gap: var(--space-2xs); }
+  .key i { width: 0.7rem; height: 0.7rem; border-radius: 3px; display: inline-block; }
+  .key.up i   { background: var(--color-up); }
+  .key.down i { background: var(--color-down); }
+  .key.flat i { background: var(--color-flat); }
+
+  /* ── 항목. 한 화면에 하나씩, 좌우로 넘긴다 ── */
+  .ledger { display: flex; flex-direction: column; gap: var(--space-md); }
+  /* 카드를 화살표가 좌우에서 감싼다 — 넘기는 동작이 카드 옆에 있어야
+     시선이 아래로 내려갔다 올라오지 않는다 */
+  .deck { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px;
+          align-items: center; gap: var(--space-sm);
+          /* 화살표를 본문 폭 바깥으로 내보내 카드가 다른 블록과 같은 너비가 되게 한다 */
+          margin-inline: calc(-1 * (42px + var(--space-sm))); }
+  .viewport { overflow: hidden; border-radius: var(--radius-lg); }
+  .track { display: flex; transition: transform var(--dur-mid) var(--ease-out); }
+  .track > .entry { flex: 0 0 100%; min-width: 0; }
+
+  .pager { display: flex; align-items: center; justify-content: center;
+           gap: var(--space-sm); }
+  .nav { width: 42px; height: 42px; flex: none; cursor: pointer;
+         border: var(--rule-soft); border-radius: var(--radius-pill);
+         background: color-mix(in oklch, var(--color-paper-0) 76%, transparent);
+         -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+         box-shadow: var(--shadow-pill);
+         color: var(--color-ink-1); font-size: var(--text-md);
+         display: grid; place-items: center;
+         transition: color var(--dur-fast) var(--ease-out),
+                     border-color var(--dur-fast) var(--ease-out); }
+  .nav:hover { color: var(--color-accent); border-color: var(--color-accent); }
+  .nav:disabled { opacity: .35; cursor: default; }
+  .pips { display: flex; gap: var(--space-2xs); }
+  .pip:hover { border-color: var(--color-accent); }
+  .nav-m { display: none; }
+  .pip { width: 7px; height: 7px; padding: 0; cursor: pointer;
+         border: 0; border-radius: var(--radius-pill);
+         background: var(--color-paper-3);
+         transition: background var(--dur-fast) var(--ease-out); }
+  .pip[aria-current="true"] { background: var(--color-mark); }
+  .count { font-size: var(--text-sm); color: var(--color-ink-3); }
+  .count b { font-weight: inherit; color: var(--color-ink-0); }
+
+  /* ── 시계열 그래프 ── */
+  .chart { margin: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
+  .chart figcaption { display: flex; align-items: baseline; flex-wrap: wrap;
+                      gap: var(--space-2xs) var(--space-sm); }
+  /* 🔴 두 조각이 자형이 달라 한 줄이 두 목소리로 읽혔다. 왼쪽에 맞춘다. */
+  .chart figcaption .cap,
+  .chart figcaption .seg { font-family: var(--font-body); font-size: var(--text-xs);
+                           letter-spacing: .02em; color: var(--color-ink-2); }
+  .chart figcaption .seg { color: var(--color-ink-3); }
+  /* 🔴 순위 막대 — 값을 큰 순서로 늘어놓는다.
+     꺾은선은 「이렇게 흘러왔다」는 추세로 읽히는데 우리는 추세를 주장하지
+     않는다. 우리가 말하는 것은 「6년 중 몇 번째」 하나뿐이므로 그림도
+     그것만 그린다. */
+  .chart .bars { display: flex; flex-direction: column; gap: 11px; }
+  .chart .bar { display: grid; grid-template-columns: 2.9rem minmax(0, 1fr) 3.6rem;
+                align-items: center; gap: var(--space-xs); }
+  .chart .bar .yr { font-family: var(--font-mono); font-size: var(--text-xs);
+                    color: var(--color-ink-3); text-align: right; }
+  .chart .bar .val { font-family: var(--font-mono); font-size: var(--text-xs);
+                     color: var(--color-ink-3); text-align: right; }
+  .chart .bar .track { height: 24px; background: color-mix(in oklch,
+                       var(--color-ink-0) 4%, transparent); border-radius: 2px; }
+  .chart .bar .fill { display: block; height: 100%; border-radius: 2px;
+                      background: color-mix(in oklch, var(--color-ink-0) 13%, transparent);
+                      min-width: 3px; }
+  /* 올해만 칠한다 — 눈이 한 번에 찾아간다 */
+  .chart .bar.now .yr,
+  .chart .bar.now .val { color: var(--color-ink-0); font-weight: 600; }
+  /* 🔴 막대를 액센트(파랑)로 칠하면 「감소」 색과 같아 방향으로 오독된다.
+     막대는 방향이 아니라 **순위**를 말하므로 배경 계열의 연두를 쓴다. */
+  .chart .bar.now .fill { background: var(--color-companion); }
+  .chart .legend-line { display: flex; flex-wrap: wrap;
+                        gap: var(--space-2xs) var(--space-md);
+                        font-size: var(--text-xs); color: var(--color-ink-2); }
+  .chart .lg { display: inline-flex; align-items: center; gap: var(--space-2xs); }
+  .chart .lg.pick::before { content: ""; width: 10px; height: 10px;
+                            border-radius: 2px; background: var(--color-companion); }
+  .chart .lg.pick b { color: var(--color-ink-0); font-weight: 600; }
+  /* 「월평균값·막대 시작점」 설명은 범례 오른쪽 여백에 붙인다 */
+  .chart .lg.note { margin-left: auto; color: var(--color-ink-3); text-align: right; }
+  .entry { border: 1px solid var(--color-leaf-line);
+           background: var(--color-card);
+           padding: 20px;
+           display: grid; gap: 24px;
+           grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+           grid-template-areas:
+             "head head"
+             "left right"
+             "chain chain"
+             "notes notes"; }
+  .entry-head { grid-area: head; }
+  .col-l { grid-area: left; display: flex; flex-direction: column;
+           gap: 18px; }
+  .col-r { grid-area: right; display: flex; flex-direction: column;
+           gap: 12px; align-self: start; }
+  .entry .chain { grid-area: chain; }
+  .entry .notes { grid-area: notes; padding-top: var(--space-md);
+                  border-top: 1px solid var(--color-leaf-line); }
+  .entry-head { display: flex; align-items: center; gap: var(--space-sm);
+                flex-wrap: wrap; padding-bottom: var(--space-sm);
+                border-bottom: 1px solid var(--color-leaf-line); }
+  .entry-head .rank { font-family: var(--font-mono); font-size: var(--text-xs);
+                      color: var(--color-ink-3); }
+  .entry-head .item { font-size: 30px; font-weight: 600; letter-spacing: -0.03em;
+                      letter-spacing: -0.035em; line-height: 1.1; }
+  .entry-head .move { margin-left: auto; display: flex; flex-direction: column;
+                      align-items: flex-end; gap: 16px;
+                      line-height: 1.25; }
+  .entry-head .movek { font-size: var(--text-xs); color: var(--color-ink-3); }
+  /* 🔴 이 자리는 「방향」이 아니라 「순위」다. 증감 색을 쓰면 오름/내림
+     신호로 읽힌다. 색을 빼고 굵기만 준다. 자형도 품목명과 같게 —
+     mono 는 한글이 없어 자형이 섞인다. */
+  /* 🔴 `.fig` 클래스를 쓰지 않는다. 그 클래스가 mono 를 물고 있어서
+     재정의로 덮어도 한 군데만 어긋나면 자형이 섞인다. **클래스를 아예
+     따로 둔다** — 가이드 제목에서 겪은 것과 같은 사고다. */
+  .entry-head .move .rankword { font-size: 21px; font-weight: 700;
+                                letter-spacing: -0.02em;
+                                color: var(--color-ink-0); }
+  .badge { font-family: var(--font-body); font-size: var(--text-xs);
+           letter-spacing: 0.02em; color: var(--color-warning);
+           border: 1px solid currentColor; border-radius: var(--radius-pill);
+           padding: 2px 9px; }
+  .say { margin: 0; font-size: 13px; line-height: 1.7; text-align: justify;
+         color: var(--color-ink-1); }
+  .say strong { font-weight: inherit; }
+
+  /* 유통 3단계 */
+  .chain { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+           gap: 0; border: 1px solid var(--color-leaf-line); }
+  .step { border-left: 1px solid var(--color-leaf-line);
+          background: var(--color-card); padding: var(--space-md) var(--space-sm);
+          display: flex; flex-direction: column; gap: 1px; text-align: center; }
+  .step:first-child { border-left: 0; }
+  .step .unitk { font-family: var(--font-body); font-size: var(--text-xs);
+                 color: var(--color-ink-3); }
+  .step .nm  { font-family: var(--font-body); font-size: var(--text-xs);
+               letter-spacing: 0.02em; color: var(--color-ink-2); }
+  .step .was { font-size: var(--text-xs); color: var(--color-ink-3); }
+  .step .now { font-size: var(--text-lg); font-weight: 600; }
+  .step .dt  { font-size: var(--text-lg); font-weight: 600; }
+  .step .rk  { font-size: var(--text-xs); color: var(--color-ink-3);
+               margin-top: 2px; }
+  .step.up   { background: var(--color-up-soft); }
+  .step.up .dt   { color: var(--color-up); }
+  .step.down { background: var(--color-down-soft); }
+  .step.down .dt { color: var(--color-down); }
+  .step.평년수준 .dt { color: var(--color-flat); }
+  .step.자료없음, .step.비교불가 { color: var(--color-ink-3); }
+
+  /* 왼쪽 열의 남는 높이를 이 상자가 가져간다 — 아래가 비면 카드가 기운다 */
+  .stat { background: var(--color-paper-1); padding: var(--space-lg);
+          display: flex; flex-direction: column; gap: var(--space-xs);
+          flex: 1; justify-content: center; }
+  /* 🔴 한글 라벨에 .1em 자간을 주면 글자가 흩어져 다른 글꼴로 보인다.
+     라틴 eyebrow 관습을 한글에 그대로 옮기면 안 된다. */
+  .stat .kk { font-family: var(--font-body); font-size: var(--text-xs);
+              letter-spacing: .02em; color: var(--color-ink-3); }
+  .stat .k { display: flex; align-items: center; gap: var(--space-xs);
+             font-size: var(--text-lg); color: var(--color-ink-1);
+             margin-bottom: var(--space-2xs); }
+  .stat .k::before { content: ""; width: 15px; height: 15px; flex: none;
+                     border-radius: 999px; background: var(--color-companion); }
+  .stat .k .sub2 { font-size: var(--text-xs); color: var(--color-ink-3);
+                   margin-left: var(--space-2xs); }
+  .stat .v { font-size: 2.75rem; line-height: 1.05; letter-spacing: -0.045em;
+             color: var(--color-ink-0); }
+  .stat .v .u { font-size: 0.42em; margin-left: 0.1em; color: var(--color-ink-2); }
+  .stat .sub { font-size: var(--text-md); color: var(--color-ink-2);
+               line-height: 1.9; }
+
+  /* 테두리와 안여백을 두면 이 상자만 24px 안으로 들어가 그래프와
+     좌우 끝이 어긋난다. 구분은 위쪽 실선 하나로 충분하다 */
+  .buy { border-top: 1px solid var(--color-leaf-line);
+         padding-top: var(--space-md);
+         display: flex; flex-direction: column; gap: var(--space-2xs); }
+  .buy .k { font-family: var(--font-body); font-size: var(--text-xs);
+            letter-spacing: .02em; color: var(--color-ink-2); }
+  .buy .row { display: flex; justify-content: space-between; align-items: baseline;
+              gap: var(--space-sm); font-size: var(--text-md); }
+  .buy .row b { font-weight: 600; }
+  .buy .row.dim { color: var(--color-ink-2); font-size: var(--text-sm); }
+  .buy .gap { font-size: var(--text-xs); color: var(--color-ink-3);
+              padding-top: var(--space-2xs); }
+
+  .peak { display: flex; align-items: baseline; flex-wrap: wrap;
+          gap: var(--space-2xs) var(--space-sm);
+          border: 1px solid var(--color-leaf-line);
+          background: var(--color-leaf-2);
+          padding: var(--space-sm) var(--space-md); }
+  .peak .k { flex: 0 0 100%; font-family: var(--font-body);
+             font-size: var(--text-xs); letter-spacing: .02em;
+             color: var(--color-ink-2); }
+  .peak .where { font-size: var(--text-md); color: var(--color-ink-0); }
+  .peak .grade { margin-left: var(--space-2xs); font-size: var(--text-xs);
+                 color: var(--color-ink-2); }
+  .peak .v { font-size: var(--text-sm); color: var(--color-ink-1); }
+  .peak .d { margin-left: auto; font-size: var(--text-lg);
+             color: var(--color-up); }
+
+  .read { margin: var(--space-md) 0 0; font-size: var(--text-base);
+          line-height: 1.95; color: var(--color-ink-1);
+          padding-top: var(--space-md);
+          border-top: 1px solid var(--color-leaf-line); }
+  .read strong { font-weight: inherit; }
+
+  .notes { display: grid; gap: var(--space-2xs) var(--space-md);
+           grid-template-columns: max-content minmax(0, 1fr);
+           font-size: var(--text-sm); color: var(--color-ink-2); }
+  .notes .k { font-family: var(--font-body); font-size: var(--text-xs);
+              letter-spacing: 0.02em; color: var(--color-ink-3);
+              white-space: nowrap; padding-top: 3px; }
+  .notes ul { margin: 0; padding-left: var(--space-md); }
+
+  .caveat { border: 1px solid var(--color-leaf-line);
+            background: var(--color-leaf);
+            padding: var(--space-lg); }
+  .caveat h2 { margin: 0 0 var(--space-xs); font-family: var(--font-body);
+               font-size: var(--text-xs); letter-spacing: 0.02em;
+               color: var(--color-ink-2); font-weight: 600; }
+  .caveat ul { margin: 0; padding-left: var(--space-md);
+               font-size: var(--text-sm); line-height: 1.75;
+               color: var(--color-ink-1); }
+  .caveat strong { font-weight: inherit; }
+
+  .quiet { text-align: center; padding: var(--space-3xl) var(--space-lg);
+           border: var(--rule-hair); border-radius: var(--radius-lg);
+           background: color-mix(in oklch, var(--color-paper-1) 70%, transparent);
+           color: var(--color-ink-2); }
+
+  /* ── 판권 ── */
+  .colophon { border-top: var(--rule-firm); padding-top: var(--space-lg);
+              display: flex; flex-direction: column; gap: var(--space-lg);
+              font-size: var(--text-sm); color: var(--color-ink-2); }
+  .colophon h2 { margin: 0 0 var(--space-xs); font-family: var(--font-body);
+                 font-size: var(--text-xs); letter-spacing: 0.02em;
+                 color: var(--color-ink-1); font-weight: 600; }
+  .colophon ul { margin: 0; padding-left: var(--space-md); line-height: 1.7; }
+  .scroll { overflow-x: auto; }
+  table.audit { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+  table.audit td { border-top: var(--rule-hair);
+                   padding: var(--space-xs); vertical-align: top; }
+  table.audit td:first-child { width: 1%; white-space: nowrap;
+                               color: var(--color-ink-1); font-weight: 600; }
+
+  @media (max-width: 56rem) {
+    .entry { grid-template-columns: minmax(0, 1fr);
+             grid-template-areas: "head" "left" "right" "chain"; }
+  }
+  @media (max-width: 40rem) {
+    .deck { grid-template-columns: minmax(0, 1fr); }
+    .deck .nav { display: none; }
+    .pager .nav-m { display: grid; }
+  }
+  @media (max-width: 34rem) {
+    .chain { grid-template-columns: minmax(0, 1fr); }
+    .legend dl, .notes { grid-template-columns: minmax(0, 1fr); }
+    .legend dt { margin-top: var(--space-xs); }
+    .entry-head .move { margin-left: 0; width: 100%; }
+    .top { padding-top: var(--space-2xl); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="sheet">
+  <header class="top">
+    <div class="status"><span class="dot"></span>
+      <span class="brand">Trusted Procurement Agent</span>
+      <span class="sep">·</span>
+      <span>생성일시 2026-07-29 09:10</span>
+      <span class="sep">·</span>
+      <span>기준일 20260729</span></div>
+    <div class="hero-num fig up">20<span class="unit">품목</span></div>
+    <p class="hero-say">20개 품목에서 한 단계가 평년보다 높습니다.</p>
+  </header>
+
+  <details class="legend">
+    <summary><span class="ttl">가이드 (용어 설명)</span></summary>
+    <div class="body">
+      <dl>
+        <dt>평년</dt>
+        <dd>최근 <b>5년의 같은 달</b> 데이터입니다.
+            올해가 평년에서 어느 수준인지 측정합니다.</dd>
+        <dt>조사 도시</dt>
+        <dd>농산물유통정보가 <b>매일 시세를 조사하는 전국 24개 도시 + 온라인</b>입니다.
+            서울·부산·대구·인천·광주·대전·울산·세종·수원·성남·고양·용인·의정부·
+            춘천·강릉·청주·천안·전주·순천·포항·안동·창원·김해·제주</dd>
+        <dt>고르는 기준</dt>
+        <dd>취급 품목 중 <b>산지·도매·소매 중 한 단계라도 평년보다 높은</b>
+            품목만 올립니다.</dd>
+        <dt>측정 순서</dt>
+        <dd><b>도매 → 산지 → 소매</b> 순입니다. 어느 단계가 가장 높은지에
+            따라 자리가 정해집니다. 도매를 맨 앞에 두는 이유는 기업의 계약
+            금액에 가장 큰 영향을 미치기 때문입니다. 산지 낙찰가나 소비자
+            판매가는 계약 단가와 직접적으로 이어지지 않는다고 보았습니다.
+            그러나 이러한 정보도 담당자가 고려할 수 있습니다. 이 순서는
+            판정이 아니라 보여주는 차례입니다. 무엇이 올라올지는 순서와
+            무관하게 「고르는 기준」이 정합니다.</dd>
+        <dt>높음·낮음</dt>
+        <dd>평년과 비교하여 올해가 몇 번째인지 정합니다.
+            1번째면 「가장 높음」, 마지막이면 「가장 낮음」입니다.</dd>
+        <dt>판정하지 않은 것</dt>
+        <dd>과거 같은 달 데이터가 <b>3개 미만</b>인 구간은 비교의 실익이 없다고 판단하여, 포함하지 않습니다.</dd>
+        <dt>유통 3단계</dt>
+        <dd><b>산지</b>는 전국 산지공판장 낙찰가, <b>도매</b>는 도매시장 중도매인 가격,
+            <b>소매</b>는 소비자 판매가입니다. 각 단계는 자기 평년과만 비교합니다.
+            단위가 달라 서로 빼거나 나누지 않습니다.</dd>
+      </dl>
+      <div class="more">
+        <h3>모든 품목 공통 사항</h3>
+        <ul><li>귀사의 계약이 이미 존재한다면 이러한 변동과 무관할 수 있습니다.</li><li>이번 주 발주 예정 물량이 있는지 확인 바랍니다.</li></ul>
+        <h3>이 보고서가 확인할 수 없는 것</h3>
+        <ul><li>귀사의 계약단가·재고·발주 일정을 알 수 없으므로, 비교하지 못합니다.</li><li>향후 가격의 변동 추이를 예측하지 않습니다.</li></ul>
+        <h3>근거</h3>
+        <div class="scroll"><table class="audit"><tr><td>데이터</td><td>공공데이터포털 — 산지공판장 · 도매시장 정산 · 도소매 가격</td></tr><tr><td>평년 기준가</td><td>같은 품목·같은 지역·같은 등급의 과거 5년 같은 달</td></tr><tr><td>판정</td><td>올해 값이 평년에서 몇 번째인지</td></tr><tr><td>판정 제외</td><td>관측 부족 212구간 · 올해 관측 없음 1,216구간</td></tr><tr><td>수집</td><td>{'소매': 177534, '도매': 40560, '산지': 0} · 호출 433회</td></tr></table></div>
+      </div>
+      <div class="keys">
+        <span class="key up"><i></i>평년보다 높음</span>
+        <span class="key down"><i></i>평년보다 낮음</span>
+        <span class="key flat"><i></i>평년 수준</span>
+      </div>
+    </div>
+  </details>
+
+  <div class="deck"><button class="nav prev" data-step="-1" aria-label="이전 품목">←</button><div class="viewport"><div class="track"><div class="entry" role="group" aria-roledescription="slide" aria-label="1 / 20"><div class="entry-head"><span class="rank fig">1</span><span class="item">오렌지</span><span class="move"><span class="movek">도매 단계 · 18kg</span><span class="rankword">4년 중 가장 높음</span></span></div><div class="col-l"><p class="say">도매시장 중도매 가격가 18kg당 70,233원으로, 최근 3년의 7월보다 높습니다. 산지·소매 단계도 마찬가지입니다. 소매에서는 시세를 조사하는 전국 7개 도시 가운데 5곳(대구·포항·서울…)에서 최근 5년 7월 중 가장 비쌉니다. 오른 품종은 네이블 미국·네이블 호주입니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">도매<span class="sub2">도매시장 중도매 가격 · 18kg</span></span><span class="v fig">+22<span class="u">%</span></span><span class="sub fig">평년 평균 57,732원 → 올해 70,233원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다. 아래 단계도 모두 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 3년 + 올해</span><span class='seg'>광주 네이블 호주 중품 · 도매</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 4년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">70,233</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:55.0%"></span></span><span class="val fig">60,117</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:54.4%"></span></span><span class="val fig">60,000</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:23.6%"></span></span><span class="val fig">53,078</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>4년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 네이블 호주 중품 · 18kg</span><span class="row"><b>광주</b><span class="fig">70,233원</span></span><span class="row dim">서울<span class="fig">72,813원</span></span><span class="gap fig">3개 도시 · 차이 2,580원 (4%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 3,142원</span><span class="now fig">4,412원</span><span class="dt fig">+40%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 가장 높음 up"><span class="nm">도매</span><span class="unitk">18kg</span><span class="was fig">평년 57,732원</span><span class="now fig">70,233원</span><span class="dt fig">+22%</span><span class="rk">4년 중 가장 높음</span></div><div class="step 가장 높음 up"><span class="nm">소매</span><span class="unitk">10개</span><span class="was fig">평년 15,045원</span><span class="now fig">19,650원</span><span class="dt fig">+31%</span><span class="rk">6년 중 가장 높음</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지·도매·소매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="2 / 20"><div class="entry-head"><span class="rank fig">2</span><span class="item">참다래</span><span class="move"><span class="movek">도매 단계 · 10kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">도매시장 중도매 가격가 10kg당 60,000원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 20개 도시 가운데 16곳(안동·세종·강릉…)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">도매<span class="sub2">도매시장 중도매 가격 · 10kg</span></span><span class="v fig">+19<span class="u">%</span></span><span class="sub fig">평년 평균 50,344원 → 올해 60,000원</span><p class="read">산지는 평년보다 낮은데 도매 단계에서 더 벌어집니다. 다른 시장·법인의 가격을 확인해 볼 필요가 있습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>부산 그린 뉴질랜드 상품 · 도매</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">60,000</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:90.8%"></span></span><span class="val fig">58,000</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:68.9%"></span></span><span class="val fig">53,217</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:63.8%"></span></span><span class="val fig">52,095</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:35.9%"></span></span><span class="val fig">46,000</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:19.4%"></span></span><span class="val fig">42,409</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 그린 뉴질랜드 상품 · 10kg</span><span class="row"><b>서울</b><span class="fig">50,600원</span></span><span class="row dim">부산<span class="fig">60,000원</span></span><span class="gap fig">5개 도시 · 차이 9,400원 (19%)</span></div></div><div class="chain"><div class="step 낮은 편 down"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 6,813원</span><span class="now fig">6,000원</span><span class="dt fig">-12%</span><span class="rk">6년 중 4번째</span></div><div class="step 가장 높음 up"><span class="nm">도매</span><span class="unitk">10kg</span><span class="was fig">평년 50,344원</span><span class="now fig">60,000원</span><span class="dt fig">+19%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 높은 편 up"><span class="nm">소매</span><span class="unitk">10개</span><span class="was fig">평년 9,103원</span><span class="now fig">11,042원</span><span class="dt fig">+21%</span><span class="rk">6년 중 2번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>도매·소매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="3 / 20"><div class="entry-head"><span class="rank fig">3</span><span class="item">블루베리</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 20,500원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 5개 도시 가운데 3곳(부산·서울·광주)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+29<span class="u">%</span></span><span class="sub fig">평년 평균 15,912원 → 올해 20,500원</span><p class="read">산지 단계에서 높게 나타납니다. 다른 단계와 비교하지 못해 어디서 시작됐는지는 알 수 없습니다. (단, 도매·소매 단계는 비교할 과거 자료가 없어 제외했습니다.)</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">20,500</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:94.2%"></span></span><span class="val fig">20,000</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:51.4%"></span></span><span class="val fig">16,293</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:37.7%"></span></span><span class="val fig">15,112</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:36.4%"></span></span><span class="val fig">14,995</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:15.2%"></span></span><span class="val fig">13,162</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 15,912원</span><span class="now fig">20,500원</span><span class="dt fig">+29%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 자료없음"><span class="nm">도매</span><span class="was">자료 없음</span><span class="now">—</span></div><div class="step 자료없음"><span class="nm">소매</span><span class="was">자료 없음</span><span class="now">—</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li></ul><span class="k">미상</span><ul><li>도매·소매 단계는 비교할 과거 자료가 모자라 판정하지 못했습니다.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="4 / 20"><div class="entry-head"><span class="rank fig">4</span><span class="item">레몬</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 8,500원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 21개 도시 가운데 12곳(인천·세종·안동…)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+111<span class="u">%</span></span><span class="sub fig">평년 평균 4,024원 → 올해 8,500원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">8,500</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:23.2%"></span></span><span class="val fig">4,412</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:18.8%"></span></span><span class="val fig">4,176</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:18.1%"></span></span><span class="val fig">4,142</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:12.9%"></span></span><span class="val fig">3,861</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:6.6%"></span></span><span class="val fig">3,529</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 수입 상품 · 17kg</span><span class="row"><b>광주</b><span class="fig">76,511원</span></span><span class="row dim">대전<span class="fig">82,500원</span></span><span class="gap fig">5개 도시 · 차이 5,989원 (8%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 4,024원</span><span class="now fig">8,500원</span><span class="dt fig">+111%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 높은 편 down"><span class="nm">도매</span><span class="unitk">17kg</span><span class="was fig">평년 77,610원</span><span class="now fig">76,511원</span><span class="dt fig">-1%</span><span class="rk">6년 중 3번째</span></div><div class="step 높은 편 up"><span class="nm">소매</span><span class="unitk">10개</span><span class="was fig">평년 9,554원</span><span class="now fig">10,465원</span><span class="dt fig">+10%</span><span class="rk">6년 중 2번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지·소매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="5 / 20"><div class="entry-head"><span class="rank fig">5</span><span class="item">부추</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 4,300원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 5개 도시 가운데 2곳(부산·서울)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+52<span class="u">%</span></span><span class="sub fig">평년 평균 2,829원 → 올해 4,300원</span><p class="read">산지 단계에서 높게 나타납니다. 다른 단계와 비교하지 못해 어디서 시작됐는지는 알 수 없습니다. (단, 도매·소매 단계는 비교할 과거 자료가 없어 제외했습니다.)</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">4,300</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:72.2%"></span></span><span class="val fig">3,550</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:63.0%"></span></span><span class="val fig">3,300</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:51.9%"></span></span><span class="val fig">3,000</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:34.1%"></span></span><span class="val fig">2,520</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:6.6%"></span></span><span class="val fig">1,775</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 2,829원</span><span class="now fig">4,300원</span><span class="dt fig">+52%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 자료없음"><span class="nm">도매</span><span class="was">자료 없음</span><span class="now">—</span></div><div class="step 자료없음"><span class="nm">소매</span><span class="was">자료 없음</span><span class="now">—</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li></ul><span class="k">미상</span><ul><li>도매·소매 단계는 비교할 과거 자료가 모자라 판정하지 못했습니다.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="6 / 20"><div class="entry-head"><span class="rank fig">6</span><span class="item">파인애플</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 3,333원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 19개 도시 가운데 7곳(제주·대구·포항…)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+39<span class="u">%</span></span><span class="sub fig">평년 평균 2,400원 → 올해 3,333원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다. 아래 단계도 모두 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">3,333</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:71.5%"></span></span><span class="val fig">2,917</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:42.9%"></span></span><span class="val fig">2,500</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:31.4%"></span></span><span class="val fig">2,333</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:20.0%"></span></span><span class="val fig">2,167</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:14.3%"></span></span><span class="val fig">2,083</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 수입 상품 · 12kg</span><span class="row"><b>서울</b><span class="fig">32,526원</span></span><span class="row dim">대전<span class="fig">33,937원</span></span><span class="gap fig">5개 도시 · 차이 1,411원 (4%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 2,400원</span><span class="now fig">3,333원</span><span class="dt fig">+39%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 높은 편 up"><span class="nm">도매</span><span class="unitk">12kg</span><span class="was fig">평년 27,148원</span><span class="now fig">29,721원</span><span class="dt fig">+9%</span><span class="rk">6년 중 2번째</span></div><div class="step 높은 편 up"><span class="nm">소매</span><span class="unitk">개</span><span class="was fig">평년 6,795원</span><span class="now fig">7,000원</span><span class="dt fig">+3%</span><span class="rk">4년 중 2번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지·도매·소매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="7 / 20"><div class="entry-head"><span class="rank fig">7</span><span class="item">바나나</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 2,000원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 19개 도시 가운데 7곳(대구·포항·대전…)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+9<span class="u">%</span></span><span class="sub fig">평년 평균 1,831원 → 올해 2,000원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다. 아래 단계도 모두 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">2,000</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">2,000</span></div><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">2,000</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:75.0%"></span></span><span class="val fig">1,846</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:62.5%"></span></span><span class="val fig">1,769</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:25.0%"></span></span><span class="val fig">1,538</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 수입 중품 · 13kg</span><span class="row"><b>부산</b><span class="fig">24,158원</span></span><span class="row dim">대전<span class="fig">27,437원</span></span><span class="gap fig">5개 도시 · 차이 3,279원 (14%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 1,831원</span><span class="now fig">2,000원</span><span class="dt fig">+9%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 높은 편 up"><span class="nm">도매</span><span class="unitk">13kg</span><span class="was fig">평년 27,938원</span><span class="now fig">30,458원</span><span class="dt fig">+9%</span><span class="rk">6년 중 2번째</span></div><div class="step 높은 편 up"><span class="nm">소매</span><span class="unitk">100g</span><span class="was fig">평년 285원</span><span class="now fig">293원</span><span class="dt fig">+3%</span><span class="rk">6년 중 3번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지·도매·소매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="8 / 20"><div class="entry-head"><span class="rank fig">8</span><span class="item">감귤</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 7,000원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 21개 도시 가운데 7곳(수원·서울·고양…)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+16<span class="u">%</span></span><span class="sub fig">평년 평균 6,023원 → 올해 7,000원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">7,000</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:83.0%"></span></span><span class="val fig">6,667</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:70.3%"></span></span><span class="val fig">6,417</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:37.1%"></span></span><span class="val fig">5,767</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:32.0%"></span></span><span class="val fig">5,667</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:28.6%"></span></span><span class="val fig">5,600</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 시설 M과 · 3kg</span><span class="row"><b>대전</b><span class="fig">17,880원</span></span><span class="row dim">서울<span class="fig">21,060원</span></span><span class="gap fig">5개 도시 · 차이 3,180원 (18%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 6,023원</span><span class="now fig">7,000원</span><span class="dt fig">+16%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 높은 편 up"><span class="nm">도매</span><span class="unitk">3kg</span><span class="was fig">평년 22,818원</span><span class="now fig">23,820원</span><span class="dt fig">+4%</span><span class="rk">5년 중 2번째</span></div><div class="step 가장 낮음 down"><span class="nm">소매</span><span class="unitk">10개</span><span class="was fig">평년 9,160원</span><span class="now fig">7,898원</span><span class="dt fig">-14%</span><span class="rk">5년 중 가장 낮음</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지·도매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="9 / 20"><div class="entry-head"><span class="rank fig">9</span><span class="item">우엉</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 12,500원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 4개 도시 가운데 1곳(광주)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+278<span class="u">%</span></span><span class="sub fig">평년 평균 3,308원 → 올해 12,500원</span><p class="read">산지 단계에서 높게 나타납니다. 다른 단계와 비교하지 못해 어디서 시작됐는지는 알 수 없습니다. (단, 도매·소매 단계는 비교할 과거 자료가 없어 제외했습니다.)</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">12,500</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:26.8%"></span></span><span class="val fig">5,095</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:10.4%"></span></span><span class="val fig">3,438</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:3.2%"></span></span><span class="val fig">2,709</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:2.6%"></span></span><span class="val fig">2,650</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:2.6%"></span></span><span class="val fig">2,650</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 3,308원</span><span class="now fig">12,500원</span><span class="dt fig">+278%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 자료없음"><span class="nm">도매</span><span class="was">자료 없음</span><span class="now">—</span></div><div class="step 자료없음"><span class="nm">소매</span><span class="was">자료 없음</span><span class="now">—</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li></ul><span class="k">미상</span><ul><li>도매·소매 단계는 비교할 과거 자료가 모자라 판정하지 못했습니다.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="10 / 20"><div class="entry-head"><span class="rank fig">10</span><span class="item">새송이버섯</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 3,500원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 23개 도시 가운데 5곳(광주·대구·서울…)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+29<span class="u">%</span></span><span class="sub fig">평년 평균 2,709원 → 올해 3,500원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">3,500</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:69.4%"></span></span><span class="val fig">3,000</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:68.9%"></span></span><span class="val fig">2,993</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:58.7%"></span></span><span class="val fig">2,826</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:47.9%"></span></span><span class="val fig">2,650</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:12.7%"></span></span><span class="val fig">2,075</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 새송이버섯 중품 · 2kg</span><span class="row"><b>부산</b><span class="fig">5,632원</span></span><span class="row dim">서울<span class="fig">6,655원</span></span><span class="gap fig">5개 도시 · 차이 1,023원 (18%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 2,709원</span><span class="now fig">3,500원</span><span class="dt fig">+29%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 높은 편 up"><span class="nm">도매</span><span class="unitk">2kg</span><span class="was fig">평년 7,486원</span><span class="now fig">7,900원</span><span class="dt fig">+6%</span><span class="rk">6년 중 3번째</span></div><div class="step 낮은 편 down"><span class="nm">소매</span><span class="unitk">100g</span><span class="was fig">평년 515원</span><span class="now fig">482원</span><span class="dt fig">-6%</span><span class="rk">6년 중 4번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지·도매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="11 / 20"><div class="entry-head"><span class="rank fig">11</span><span class="item">표고버섯</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 8,900원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 5개 도시 가운데 1곳(광주)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+45<span class="u">%</span></span><span class="sub fig">평년 평균 6,136원 → 올해 8,900원</span><p class="read">산지 단계에서 높게 나타납니다. 다른 단계와 비교하지 못해 어디서 시작됐는지는 알 수 없습니다. (단, 도매·소매 단계는 비교할 과거 자료가 없어 제외했습니다.)</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">8,900</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:41.7%"></span></span><span class="val fig">6,625</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:32.1%"></span></span><span class="val fig">6,250</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:32.1%"></span></span><span class="val fig">6,250</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:25.7%"></span></span><span class="val fig">6,000</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:14.2%"></span></span><span class="val fig">5,553</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 6,136원</span><span class="now fig">8,900원</span><span class="dt fig">+45%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 자료없음"><span class="nm">도매</span><span class="was">자료 없음</span><span class="now">—</span></div><div class="step 자료없음"><span class="nm">소매</span><span class="was">자료 없음</span><span class="now">—</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li></ul><span class="k">미상</span><ul><li>도매·소매 단계는 비교할 과거 자료가 모자라 판정하지 못했습니다.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="12 / 20"><div class="entry-head"><span class="rank fig">12</span><span class="item">체리</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 16,600원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 18개 도시 가운데 3곳(창원·고양·전주)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+39<span class="u">%</span></span><span class="sub fig">평년 평균 11,920원 → 올해 16,600원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다. 아래 단계도 모두 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">16,600</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:78.4%"></span></span><span class="val fig">15,000</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:48.8%"></span></span><span class="val fig">12,800</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:24.5%"></span></span><span class="val fig">11,000</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:19.1%"></span></span><span class="val fig">10,600</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:13.7%"></span></span><span class="val fig">10,200</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 수입 상품 · 5kg</span><span class="row"><b>광주</b><span class="fig">73,579원</span></span><span class="row dim">부산<span class="fig">81,105원</span></span><span class="gap fig">5개 도시 · 차이 7,526원 (10%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 11,920원</span><span class="now fig">16,600원</span><span class="dt fig">+39%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 높은 편 up"><span class="nm">도매</span><span class="unitk">5kg</span><span class="was fig">평년 65,570원</span><span class="now fig">73,579원</span><span class="dt fig">+12%</span><span class="rk">6년 중 2번째</span></div><div class="step 높은 편 up"><span class="nm">소매</span><span class="unitk">100g</span><span class="was fig">평년 2,282원</span><span class="now fig">2,374원</span><span class="dt fig">+4%</span><span class="rk">6년 중 2번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지·도매·소매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="13 / 20"><div class="entry-head"><span class="rank fig">13</span><span class="item">브로콜리</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 5,500원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 22개 도시 가운데 3곳(광주·서울·대구)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+55<span class="u">%</span></span><span class="sub fig">평년 평균 3,546원 → 올해 5,500원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">5,500</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:55.8%"></span></span><span class="val fig">4,198</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:49.5%"></span></span><span class="val fig">4,012</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:40.4%"></span></span><span class="val fig">3,744</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:13.0%"></span></span><span class="val fig">2,938</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:9.6%"></span></span><span class="val fig">2,840</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 브로콜리(국산) 중품 · 8kg</span><span class="row"><b>대전</b><span class="fig">18,037원</span></span><span class="row dim">서울<span class="fig">37,932원</span></span><span class="gap fig">5개 도시 · 차이 19,895원 (110%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 3,546원</span><span class="now fig">5,500원</span><span class="dt fig">+55%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 높은 편 down"><span class="nm">도매</span><span class="unitk">8kg</span><span class="was fig">평년 38,787원</span><span class="now fig">37,932원</span><span class="dt fig">-2%</span><span class="rk">4년 중 2번째</span></div><div class="step 가장 낮음 down"><span class="nm">소매</span><span class="unitk">개</span><span class="was fig">평년 1,998원</span><span class="now fig">1,861원</span><span class="dt fig">-7%</span><span class="rk">4년 중 가장 낮음</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="14 / 20"><div class="entry-head"><span class="rank fig">14</span><span class="item">콩</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 8,148원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 23개 도시 가운데 2곳(제주·세종)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+113<span class="u">%</span></span><span class="sub fig">평년 평균 3,826원 → 올해 8,148원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">8,148</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:23.5%"></span></span><span class="val fig">4,325</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:15.0%"></span></span><span class="val fig">3,900</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:13.0%"></span></span><span class="val fig">3,800</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:9.1%"></span></span><span class="val fig">3,605</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:7.0%"></span></span><span class="val fig">3,500</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 흰 콩(수입) 중품 · 35kg</span><span class="row"><b>광주</b><span class="fig">120,000원</span></span><span class="row dim">부산<span class="fig">131,789원</span></span><span class="gap fig">5개 도시 · 차이 11,789원 (10%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 3,826원</span><span class="now fig">8,148원</span><span class="dt fig">+113%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 높은 편 down"><span class="nm">도매</span><span class="unitk">35kg</span><span class="was fig">평년 122,422원</span><span class="now fig">120,000원</span><span class="dt fig">-2%</span><span class="rk">6년 중 3번째</span></div><div class="step 가장 낮음 down"><span class="nm">소매</span><span class="unitk">500g</span><span class="was fig">평년 4,389원</span><span class="now fig">4,154원</span><span class="dt fig">-5%</span><span class="rk">6년 중 가장 낮음</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li><li>흰 콩(수입) 품종은 평년 이하입니다. 대체 가능한지 확인해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="15 / 20"><div class="entry-head"><span class="rank fig">15</span><span class="item">미나리</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 6,700원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 23개 도시 가운데 1곳(울산)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+75<span class="u">%</span></span><span class="sub fig">평년 평균 3,832원 → 올해 6,700원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">6,700</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:84.6%"></span></span><span class="val fig">5,950</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:44.6%"></span></span><span class="val fig">4,012</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:44.6%"></span></span><span class="val fig">4,012</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:26.6%"></span></span><span class="val fig">3,138</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:4.2%"></span></span><span class="val fig">2,050</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 미나리 중품 · 8kg</span><span class="row"><b>광주</b><span class="fig">17,652원</span></span><span class="row dim">대구<span class="fig">37,322원</span></span><span class="gap fig">5개 도시 · 차이 19,670원 (111%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 3,832원</span><span class="now fig">6,700원</span><span class="dt fig">+75%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 낮은 편 down"><span class="nm">도매</span><span class="unitk">8kg</span><span class="was fig">평년 52,626원</span><span class="now fig">40,505원</span><span class="dt fig">-23%</span><span class="rk">6년 중 5번째</span></div><div class="step 낮은 편 up"><span class="nm">소매</span><span class="unitk">100g</span><span class="was fig">평년 1,196원</span><span class="now fig">1,239원</span><span class="dt fig">+4%</span><span class="rk">5년 중 4번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지·소매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="16 / 20"><div class="entry-head"><span class="rank fig">16</span><span class="item">깻잎</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 8,640원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 23개 도시 가운데 1곳(서울)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+60<span class="u">%</span></span><span class="sub fig">평년 평균 5,390원 → 올해 8,640원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">8,640</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:60.0%"></span></span><span class="val fig">6,725</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:44.9%"></span></span><span class="val fig">6,000</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:35.5%"></span></span><span class="val fig">5,550</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:11.5%"></span></span><span class="val fig">4,400</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:8.9%"></span></span><span class="val fig">4,275</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 깻잎 중품 · 2kg</span><span class="row"><b>대구</b><span class="fig">11,605원</span></span><span class="row dim">부산<span class="fig">15,737원</span></span><span class="gap fig">5개 도시 · 차이 4,132원 (36%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 5,390원</span><span class="now fig">8,640원</span><span class="dt fig">+60%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 가장 낮음 down"><span class="nm">도매</span><span class="unitk">2kg</span><span class="was fig">평년 19,977원</span><span class="now fig">14,837원</span><span class="dt fig">-26%</span><span class="rk">6년 중 가장 낮음</span></div><div class="step 낮은 편 down"><span class="nm">소매</span><span class="unitk">50g</span><span class="was fig">평년 1,078원</span><span class="now fig">990원</span><span class="dt fig">-8%</span><span class="rk">6년 중 5번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="17 / 20"><div class="entry-head"><span class="rank fig">17</span><span class="item">오이</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 1,890원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 23개 도시 가운데 1곳(서울)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+49<span class="u">%</span></span><span class="sub fig">평년 평균 1,271원 → 올해 1,890원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">1,890</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:90.5%"></span></span><span class="val fig">1,780</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:64.4%"></span></span><span class="val fig">1,480</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:35.8%"></span></span><span class="val fig">1,150</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:33.6%"></span></span><span class="val fig">1,125</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:7.1%"></span></span><span class="val fig">820</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 다다기계통 중품 · 50개</span><span class="row"><b>대전</b><span class="fig">12,687원</span></span><span class="row dim">대구<span class="fig">18,000원</span></span><span class="gap fig">4개 도시 · 차이 5,313원 (42%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 1,271원</span><span class="now fig">1,890원</span><span class="dt fig">+49%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 낮은 편 down"><span class="nm">도매</span><span class="unitk">50개</span><span class="was fig">평년 25,186원</span><span class="now fig">18,000원</span><span class="dt fig">-29%</span><span class="rk">6년 중 5번째</span></div><div class="step 낮은 편 down"><span class="nm">소매</span><span class="unitk">10개</span><span class="was fig">평년 9,778원</span><span class="now fig">7,026원</span><span class="dt fig">-28%</span><span class="rk">6년 중 5번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="18 / 20"><div class="entry-head"><span class="rank fig">18</span><span class="item">상추</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 12,657원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 23개 도시 어디에서도 최근 5년 7월 최고가는 아닙니다. 전반적으로 낮습니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+93<span class="u">%</span></span><span class="sub fig">평년 평균 6,554원 → 올해 12,657원</span><p class="read">가장 앞선 산지 단계에서 이미 높습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">12,657</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:70.4%"></span></span><span class="val fig">9,975</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:48.0%"></span></span><span class="val fig">7,950</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:34.3%"></span></span><span class="val fig">6,706</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:5.9%"></span></span><span class="val fig">4,138</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:4.4%"></span></span><span class="val fig">4,000</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 적 중품 · 4kg</span><span class="row"><b>광주</b><span class="fig">17,374원</span></span><span class="row dim">서울<span class="fig">22,926원</span></span><span class="gap fig">5개 도시 · 차이 5,552원 (32%)</span></div></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 6,554원</span><span class="now fig">12,657원</span><span class="dt fig">+93%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 낮은 편 down"><span class="nm">도매</span><span class="unitk">4kg</span><span class="was fig">평년 51,828원</span><span class="now fig">32,837원</span><span class="dt fig">-37%</span><span class="rk">6년 중 5번째</span></div><div class="step 낮은 편 down"><span class="nm">소매</span><span class="unitk">100g</span><span class="was fig">평년 1,532원</span><span class="now fig">1,212원</span><span class="dt fig">-21%</span><span class="rk">6년 중 5번째</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li><li>청 품종은 평년 이하입니다. 대체 가능한지 확인해 보세요.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="19 / 20"><div class="entry-head"><span class="rank fig">19</span><span class="item">가지</span><span class="move"><span class="movek">산지 단계 · 원/kg</span><span class="rankword">6년 중 가장 높음</span></span></div><div class="col-l"><p class="say">전국 산지공판장 낙찰가가 kg당 2,200원으로, 최근 5년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 5개 도시 어디에서도 최근 5년 7월 최고가는 아닙니다. 전반적으로 낮습니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">산지<span class="sub2">전국 산지공판장 낙찰가 · 원/kg</span></span><span class="v fig">+76<span class="u">%</span></span><span class="sub fig">평년 평균 1,253원 → 올해 2,200원</span><p class="read">산지 단계에서 높게 나타납니다. 다른 단계와 비교하지 못해 어디서 시작됐는지는 알 수 없습니다. (단, 도매·소매 단계는 비교할 과거 자료가 없어 제외했습니다.)</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 5년 + 올해</span><span class='seg'>전국 산지공판장 낙찰가</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 6년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">2,200</span></div><div class="bar"><span class="yr fig">2022</span><span class="track"><span class="fill" style="width:62.1%"></span></span><span class="val fig">1,600</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:53.1%"></span></span><span class="val fig">1,457</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:49.5%"></span></span><span class="val fig">1,400</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:32.2%"></span></span><span class="val fig">1,125</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:4.3%"></span></span><span class="val fig">684</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>6년 중 1번째</b></span></div></figure></div><div class="chain"><div class="step 가장 높음 up"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 1,253원</span><span class="now fig">2,200원</span><span class="dt fig">+76%</span><span class="rk">6년 중 가장 높음</span></div><div class="step 자료없음"><span class="nm">도매</span><span class="was">자료 없음</span><span class="now">—</span></div><div class="step 자료없음"><span class="nm">소매</span><span class="was">자료 없음</span><span class="now">—</span></div></div><div class="notes"><span class="k">확인</span><ul><li>산지 단계의 다른 시장 가격을 비교해 보세요.</li></ul><span class="k">미상</span><ul><li>도매·소매 단계는 비교할 과거 자료가 모자라 판정하지 못했습니다.</li></ul></div></div><div class="entry" role="group" aria-roledescription="slide" aria-label="20 / 20"><div class="entry-head"><span class="rank fig">20</span><span class="item">망고</span><span class="move"><span class="movek">소매 단계 · 개</span><span class="rankword">5년 중 가장 높음</span></span></div><div class="col-l"><p class="say">소매 판매가가 개당 5,443원으로, 최근 4년의 7월보다 높습니다. 소매에서는 시세를 조사하는 전국 19개 도시 가운데 13곳(김해·세종·용인…)에서 최근 5년 7월 중 가장 비쌉니다.</p><div class="stat"><span class="kk">평년보다 높은 단계</span><span class="k">소매<span class="sub2">소매 판매가 · 개</span></span><span class="v fig">+12<span class="u">%</span></span><span class="sub fig">평년 평균 4,848원 → 올해 5,443원</span><p class="read">산지는 평년보다 낮은데 도매 단계에서 더 벌어집니다. 다른 시장·법인의 가격을 확인해 볼 필요가 있습니다.</p></div></div><div class="col-r"><figure class="chart"><figcaption><span class="cap">7월끼리만 비교 · 평년 4년 + 올해</span><span class='seg'>순천 수입 상품 · 소매</span></figcaption><div class="bars" role="img" aria-label="7월 값을 큰 순서로 늘어놓음. 올해는 5년 중 1번째"><div class="bar now"><span class="yr fig">2026</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val fig">5,443</span></div><div class="bar"><span class="yr fig">2023</span><span class="track"><span class="fill" style="width:88.7%"></span></span><span class="val fig">5,250</span></div><div class="bar"><span class="yr fig">2021</span><span class="track"><span class="fill" style="width:88.4%"></span></span><span class="val fig">5,245</span></div><div class="bar"><span class="yr fig">2024</span><span class="track"><span class="fill" style="width:59.1%"></span></span><span class="val fig">4,745</span></div><div class="bar"><span class="yr fig">2025</span><span class="track"><span class="fill" style="width:24.3%"></span></span><span class="val fig">4,150</span></div></div><div class="legend-line"><span class="lg pick">올해 2026년 — <b>5년 중 1번째</b></span></div></figure><div class="buy"><span class="k">도시 간 도매 가격 차이 · 수입 상품 · 5kg</span><span class="row"><b>대구</b><span class="fig">54,947원</span></span><span class="row dim">서울<span class="fig">61,842원</span></span><span class="gap fig">5개 도시 · 차이 6,895원 (13%)</span></div></div><div class="chain"><div class="step 가장 낮음 down"><span class="nm">산지</span><span class="unitk">원/kg</span><span class="was fig">평년 11,780원</span><span class="now fig">6,000원</span><span class="dt fig">-49%</span><span class="rk">6년 중 가장 낮음</span></div><div class="step 높은 편 up"><span class="nm">도매</span><span class="unitk">5kg</span><span class="was fig">평년 48,246원</span><span class="now fig">58,947원</span><span class="dt fig">+22%</span><span class="rk">6년 중 2번째</span></div><div class="step 가장 높음 up"><span class="nm">소매</span><span class="unitk">개</span><span class="was fig">평년 4,848원</span><span class="now fig">5,443원</span><span class="dt fig">+12%</span><span class="rk">5년 중 가장 높음</span></div></div><div class="notes"><span class="k">확인</span><ul><li>도매·소매 단계의 다른 시장 가격을 비교해 보세요.</li></ul></div></div></div></div><button class="nav next" data-step="1" aria-label="다음 품목">→</button></div><div class="pager"><button class="nav nav-m prev" data-step="-1" aria-label="이전 품목">←</button><div class="pips"><button class="pip" data-go="0" aria-label="0번째 품목"></button><button class="pip" data-go="1" aria-label="1번째 품목"></button><button class="pip" data-go="2" aria-label="2번째 품목"></button><button class="pip" data-go="3" aria-label="3번째 품목"></button><button class="pip" data-go="4" aria-label="4번째 품목"></button><button class="pip" data-go="5" aria-label="5번째 품목"></button><button class="pip" data-go="6" aria-label="6번째 품목"></button><button class="pip" data-go="7" aria-label="7번째 품목"></button><button class="pip" data-go="8" aria-label="8번째 품목"></button><button class="pip" data-go="9" aria-label="9번째 품목"></button><button class="pip" data-go="10" aria-label="10번째 품목"></button><button class="pip" data-go="11" aria-label="11번째 품목"></button><button class="pip" data-go="12" aria-label="12번째 품목"></button><button class="pip" data-go="13" aria-label="13번째 품목"></button><button class="pip" data-go="14" aria-label="14번째 품목"></button><button class="pip" data-go="15" aria-label="15번째 품목"></button><button class="pip" data-go="16" aria-label="16번째 품목"></button><button class="pip" data-go="17" aria-label="17번째 품목"></button><button class="pip" data-go="18" aria-label="18번째 품목"></button><button class="pip" data-go="19" aria-label="19번째 품목"></button></div><span class="count fig"><b>1</b> / 20</span><button class="nav nav-m next" data-step="1" aria-label="다음 품목">→</button></div>
+
+
+</div>
+
+<script>
+/* 좌우 넘김. 스크롤이 아니라 transform 으로 옮긴다 —
+   레이아웃 속성을 건드리지 않아야 프레임이 떨어지지 않는다. */
+(function () {
+  var track = document.querySelector(".track");
+  if (!track) return;
+  var total = track.children.length;
+  var at = 0;
+  var pips = Array.prototype.slice.call(document.querySelectorAll(".pip"));
+  var prevs = Array.prototype.slice.call(document.querySelectorAll(".nav.prev"));
+  var nexts = Array.prototype.slice.call(document.querySelectorAll(".nav.next"));
+  var count = document.querySelector(".count b");
+
+  function draw() {
+    track.style.transform = "translateX(" + (-at * 100) + "%)";
+    pips.forEach(function (b, i) {
+      b.setAttribute("aria-current", i === at ? "true" : "false");
+    });
+    if (count) count.textContent = at + 1;
+    prevs.forEach(function (b) { b.disabled = at === 0; });
+    nexts.forEach(function (b) { b.disabled = at === total - 1; });
+  }
+  function go(i) { at = Math.max(0, Math.min(total - 1, i)); draw(); }
+
+  prevs.concat(nexts).forEach(function (b) {
+    b.addEventListener("click", function () {
+      go(at + parseInt(b.dataset.step, 10));
+    });
+  });
+  pips.forEach(function (b) {
+    b.addEventListener("click", function () { go(parseInt(b.dataset.go, 10)); });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") go(at - 1);
+    if (e.key === "ArrowRight") go(at + 1);
+  });
+  draw();
+})();
+<\/script>
+</script>
+<script>
+const 손잡이 = [{"id": "cardpad", "name": "카드 안쪽 여백", "sel": ".entry", "prop": "padding", "min": 12, "max": 48, "def": 32, "unit": "px"}, {"id": "colgap", "name": "좌우 칸 사이", "sel": ".entry", "prop": "column-gap", "min": 8, "max": 64, "def": 24, "unit": "px"}, {"id": "rowgap", "name": "위아래 블록 사이", "sel": ".entry", "prop": "row-gap", "min": 8, "max": 64, "def": 24, "unit": "px"}, {"id": "headgap", "name": "라벨 ↔ 순위 문구", "sel": ".entry-head .move", "prop": "gap", "min": 0, "max": 24, "def": 8, "unit": "px"}, {"id": "itemsize", "name": "품목명 크기", "sel": ".entry-head .item", "prop": "font-size", "min": 16, "max": 40, "def": 24, "unit": "px"}, {"id": "ranksize", "name": "순위 문구 크기", "sel": ".entry-head .move .rankword", "prop": "font-size", "min": 12, "max": 32, "def": 18, "unit": "px"}, {"id": "saysize", "name": "설명 문장 크기", "sel": ".say", "prop": "font-size", "min": 12, "max": 22, "def": 16, "unit": "px"}, {"id": "barh", "name": "막대 높이", "sel": ".chart .bar .track", "prop": "height", "min": 10, "max": 40, "def": 21, "unit": "px"}, {"id": "bargap", "name": "막대 사이", "sel": ".chart .bars", "prop": "gap", "min": 2, "max": 24, "def": 9, "unit": "px"}, {"id": "rgap", "name": "그래프 ↔ 도시 비교", "sel": ".col-r", "prop": "gap", "min": 8, "max": 72, "def": 24, "unit": "px"}, {"id": "lgap", "name": "설명 ↔ 벌어진 조건", "sel": ".col-l", "prop": "gap", "min": 8, "max": 72, "def": 24, "unit": "px"}, {"id": "statpad", "name": "「벌어진 조건」 여백", "sel": ".stat", "prop": "padding", "min": 12, "max": 48, "def": 24, "unit": "px"}];
+const 값 = {};
+손잡이.forEach(k => 값[k.id] = k.def);
+let 비율 = 1.25;                       // .entry 오른쪽 칸 배수 (기본 1.25fr)
+
+const v = document.getElementById("v");
+v.srcdoc = document.getElementById("doc").textContent;
+
+function css() {
+  const 줄 = 손잡이.map(k => `${k.sel}{${k.prop}:${값[k.id]}${k.unit} !important}`);
+  줄.push(`.entry{grid-template-columns:minmax(0,1fr) minmax(0,${비율}fr) !important}`);
+  return 줄.join("\n");
+}
+function 칠하기() {
+  const d = v.contentDocument;
+  if (!d) return;
+  let s = d.getElementById("tune");
+  if (!s) { s = d.createElement("style"); s.id = "tune"; d.head.appendChild(s); }
+  s.textContent = css();
+  손잡이.forEach(k => {
+    const o = document.getElementById("o_" + k.id);
+    if (o) o.value = 값[k.id] + k.unit;
+  });
+  document.getElementById("outbox").value = 요약();
+  손잡이위치();
+}
+
+// ── 좌우 비율 손잡이 ──────────────────────────────────────────
+const grip = document.getElementById("grip"), lab = document.getElementById("griplab");
+function 첫카드() {
+  const d = v.contentDocument;
+  return d && d.querySelector(".entry");
+}
+function 손잡이위치() {
+  const e = 첫카드();
+  if (!e) { grip.hidden = true; return; }
+  const r = e.getBoundingClientRect();
+  const pad = parseFloat(v.contentWindow.getComputedStyle(e).paddingLeft);
+  const gap = parseFloat(v.contentWindow.getComputedStyle(e).columnGap);
+  const 안 = r.width - pad * 2 - gap;
+  const 왼 = 안 / (1 + 비율);
+  grip.hidden = false; lab.hidden = false;
+  grip.style.left = (r.left + pad + 왼 + gap / 2 - 7) + "px";
+  lab.textContent = `좌우 1 : ${비율.toFixed(2)}`;
+}
+let 끄는중 = false;
+grip.addEventListener("pointerdown", e => {
+  끄는중 = true; grip.classList.add("on"); grip.setPointerCapture(e.pointerId);
+});
+window.addEventListener("pointermove", e => {
+  if (!끄는중) return;
+  const el = 첫카드(); if (!el) return;
+  const r = el.getBoundingClientRect();
+  const pad = parseFloat(v.contentWindow.getComputedStyle(el).paddingLeft);
+  const gap = parseFloat(v.contentWindow.getComputedStyle(el).columnGap);
+  const 안 = r.width - pad * 2 - gap;
+  const 왼 = Math.min(Math.max(e.clientX - (r.left + pad), 안 * 0.25), 안 * 0.75);
+  비율 = Math.round(((안 - 왼) / 왼) * 100) / 100;
+  칠하기();
+});
+window.addEventListener("pointerup", () => { 끄는중 = false; grip.classList.remove("on"); });
+
+// ── 막대들 ────────────────────────────────────────────────────
+document.getElementById("knobs").innerHTML = 손잡이.map(k => `
+  <div class="k">
+    <div class="t"><b>${k.name}</b><output id="o_${k.id}">${k.def}${k.unit}</output></div>
+    <input type="range" id="r_${k.id}" min="${k.min}" max="${k.max}" step="1" value="${k.def}">
+    <div class="sel">${k.sel} · ${k.prop}</div>
+  </div>`).join("");
+손잡이.forEach(k => {
+  document.getElementById("r_" + k.id).addEventListener("input", e => {
+    값[k.id] = +e.target.value; 칠하기();
+  });
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  손잡이.forEach(k => { 값[k.id] = k.def;
+    document.getElementById("r_" + k.id).value = k.def; });
+  비율 = 1.25; 칠하기();
+});
+// 🔴 아티팩트는 샌드박스라 navigator.clipboard 가 막힐 수 있다. 막히면
+//    값이 **콘솔로만** 가는데 그건 아무에게도 전달되지 않는다 —
+//    실제로 「콘솔에 출력했다」는 안내만 보고 값이 사라졌다.
+//    그래서 값을 **항상 화면 상자에 띄워 두고**, 복사는 거들기만 한다.
+function 요약() {
+  const 바뀐 = 손잡이.filter(k => 값[k.id] !== k.def)
+    .map(k => `${k.name}: ${값[k.id]}${k.unit}   (${k.sel} · ${k.prop})`);
+  if (Math.abs(비율 - 1.25) > 0.01) 바뀐.push(`좌우 비율: 1 : ${비율.toFixed(2)}`);
+  return 바뀐.length ? 바뀐.join("\n") : "아직 바꾼 값이 없습니다.";
+}
+document.getElementById("copy").addEventListener("click", async () => {
+  const box = document.getElementById("outbox");
+  box.focus(); box.select(); box.setSelectionRange(0, box.value.length);
+  let 됨 = false;
+  try { await navigator.clipboard.writeText(box.value); 됨 = true; } catch (e) {}
+  if (!됨) { try { 됨 = document.execCommand("copy"); } catch (e) {} }
+  document.getElementById("msg").textContent = 됨
+    ? "복사했습니다 — 채팅에 붙여 넣으세요"
+    : "복사가 막혔습니다 — 위 상자가 선택돼 있으니 Ctrl+C 를 누르세요";
+  setTimeout(() => document.getElementById("msg").textContent = "", 5000);
+});
+
+v.addEventListener("load", () => setTimeout(칠하기, 60));
+window.addEventListener("resize", 손잡이위치);
+</script>
